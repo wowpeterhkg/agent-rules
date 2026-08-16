@@ -7,7 +7,7 @@ FORK=${FORK:-https://github.com/wowpeter-idnerd/agent-rules-books.git}
 UPSTREAM=${UPSTREAM:-https://github.com/ciembor/agent-rules-books.git}
 REF=${REF:-main}
 
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT INT TERM HUP
 
