@@ -134,6 +134,12 @@ is not consent.
 Stop. Name the file and the line. Do not paste the value. Do not "fix" it by rewriting history —
 that is the human's call, and it collides with the git ceiling.
 
+# Security-relevant changes
+
+Auth, sessions, crypto, input parsing, file upload, a new public route, new outbound egress, or
+a new dependency: name the change as security-relevant, name the OWASP risks, and say which
+independent gate covers it — or that none does. Never self-certify.
+
 # Verification and honesty
 
 ## Claim only what you observed
