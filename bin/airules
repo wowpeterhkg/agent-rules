@@ -62,7 +62,7 @@ require_dist() {
 }
 
 repo_version() {
-  [ -f "$AIRULES_REPO/VERSION" ] && cat "$AIRULES_REPO/VERSION" || echo unknown
+  if [ -f "$AIRULES_REPO/VERSION" ]; then cat "$AIRULES_REPO/VERSION"; else echo unknown; fi
 }
 
 # ------------------------------------------------------------------- install
@@ -405,7 +405,7 @@ cmd_status() {
   n_sk=$(find "$CLAUDE_DIR/skills" -maxdepth 1 \( -name 'book-*' -o -name 'idn-*' \) 2>/dev/null | wc -l | tr -d ' ')
   n_ag=$(find "$AGENTS_SKILLS" -maxdepth 1 \( -name 'book-*' -o -name 'idn-*' \) 2>/dev/null | wc -l | tr -d ' ')
   n_foreign=$(find "$AGENTS_SKILLS" -maxdepth 1 -mindepth 1 ! -name 'book-*' ! -name 'idn-*' 2>/dev/null | wc -l | tr -d ' ')
-  log "claude    rules/ $n_rules   skills/ $n_sk   memory block $([ -f "$CLAUDE_DIR/CLAUDE.md" ] && echo present || echo MISSING)"
+  log "claude    rules/ $n_rules   skills/ $n_sk   memory block $(if [ -f "$CLAUDE_DIR/CLAUDE.md" ]; then echo present; else echo MISSING; fi)"
   if [ -f "$CODEX_DIR/AGENTS.md" ]; then
     log "codex     AGENTS.md $(wc -c < "$CODEX_DIR/AGENTS.md" | tr -d ' ') B   skills $n_ag"
   else
@@ -531,9 +531,11 @@ cmd_uninstall() {
   state_owned_paths | while read -r p; do
     [ -n "$p" ] || continue
     case $p in
-      "$CLAUDE_DIR/settings.json") have python3 && python3 "$LIB/merge_settings.py" "$p" x uninstall || true ;;
+      "$CLAUDE_DIR/settings.json")
+        if have python3; then python3 "$LIB/merge_settings.py" "$p" x uninstall || true; fi ;;
       "$CLAUDE_DIR/CLAUDE.md") managed_block_remove "$p" ;;
-      "$CODEX_DIR/config.toml") have python3 && python3 "$LIB/patch_codex_config.py" "$p" uninstall || true ;;
+      "$CODEX_DIR/config.toml")
+        if have python3; then python3 "$LIB/patch_codex_config.py" "$p" uninstall || true; fi ;;
       crontab:*) crontab -l 2>/dev/null | grep -v 'airules update' | crontab - || true ;;
       *.plist) launchctl unload "$p" 2>/dev/null || true; rm -f -- "$p" ;;
       *) rm -rf -- "$p" ;;
@@ -546,7 +548,7 @@ cmd_uninstall() {
 # --------------------------------------------------------------------- main
 
 cmd=${1:-}
-[ $# -gt 0 ] && shift || true
+if [ $# -gt 0 ]; then shift; fi
 case $cmd in
   install)   cmd_install "$@" ;;
   update)    cmd_update "$@" ;;
