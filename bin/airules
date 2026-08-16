@@ -113,7 +113,26 @@ install_artifacts() {
     fi
   fi
 
-  # 5. The CLI on PATH.
+  # 5. Seed the auto-init owner list from the signed-in GitHub account, once.
+  #    Without it the "offer to scaffold this repo" prompt stays silent.
+  _owners_file=${XDG_CONFIG_HOME:-$HOME/.config}/airules/owners
+  if [ ! -e "$_owners_file" ]; then
+    mkdir -p "$(dirname -- "$_owners_file")"
+    {
+      printf '# Repos whose git remote belongs to one of these owners may be offered\n'
+      # shellcheck disable=SC2016  # literal backticks in a comment, not an expansion
+      printf '# `airules init` when they have no AGENTS.md. One owner per line.\n'
+      printf '# Everything else is ignored, so your conventions stay out of other\n'
+      printf '# people'"'"'s repositories. Empty file = feature disabled.\n'
+      if have gh; then
+        gh api user --jq .login 2>/dev/null || true
+        gh api user/orgs --jq '.[].login' 2>/dev/null || true
+      fi
+    } > "$_owners_file"
+    state_record file "$_owners_file"
+  fi
+
+  # 6. The CLI on PATH.
   mkdir -p "$(dirname -- "$AIRULES_BIN_LINK")"
   AIRULES_LINK_MODE='link' link_managed "$AIRULES_HOME/bin/airules" "$AIRULES_BIN_LINK"
 
@@ -291,11 +310,15 @@ project_needs_init() {
   [ -e "$_pn_root/AGENTS.md" ] && return 1
   _pn_remote=$(git -C "$_pn_root" remote get-url origin 2>/dev/null) || return 1
 
+  # Owners are configuration, not code. Empty by default: with no configured owner
+  # this feature stays silent rather than prompting in repos that are not yours.
   _pn_owners_file=${XDG_CONFIG_HOME:-$HOME/.config}/airules/owners
-  if [ -r "$_pn_owners_file" ]; then
+  if [ -n "${AIRULES_OWNERS:-}" ]; then
+    _pn_owners=$AIRULES_OWNERS
+  elif [ -r "$_pn_owners_file" ]; then
     _pn_owners=$(grep -v '^[[:space:]]*#' "$_pn_owners_file" | tr '\n' ' ')
   else
-    _pn_owners=${AIRULES_OWNERS:-wowpeter-idnerd idnerdidx wowpeterhkg}
+    return 1
   fi
 
   for _pn_o in $_pn_owners; do
