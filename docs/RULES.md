@@ -17,12 +17,17 @@ Everything else goes to `src/scoped/` (loads on a path match) or `src/skills/` (
 
 | Layer | Cap | Enforced by |
 | --- | --- | --- |
-| `dist/claude/rules/airules-00-core.md` | 16 KiB | `build.py`, CI |
-| `dist/codex/AGENTS.md` | 14 KiB | `build.py`, CI |
-| scoped layer, total | 12 KiB | `build.py`, CI |
+| `dist/claude/rules/airules-00-core.md` | 24 KiB | `build.py`, CI |
+| `dist/codex/AGENTS.md` | 18 KiB | `build.py`, CI |
+| scoped layer, total | 24 KiB | `build.py`, CI |
 | project `AGENTS.md` | ~4 KB by convention | review |
 
-Core is zero-sum. **Adding bytes to core requires removing bytes from core.** Scoped and skills
+Core is zero-sum. **Adding bytes to core requires removing bytes from core** — or an explicit,
+recorded decision to raise the cap. The caps have been raised twice: from 16/14 KiB for the
+design-defaults layer, and again to 24/18 KiB for the approved-stack and project-structure rules.
+Always-on is now ~22 KiB, roughly 5.5k tokens on every task. If it needs to shrink, move
+`55-design-defaults` into a skill first — it is advisory content rather than a guardrail. The
+scoped budget is deliberately generous because scoped rules cost nothing when not loaded. Scoped and skills
 are not zero-sum, because they cost nothing when not loaded.
 
 The Codex cap is deliberately below its default 32 KiB total doc budget, so that a machine whose

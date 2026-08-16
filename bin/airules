@@ -431,9 +431,11 @@ cmd_doctor() {
   # Codex override shadows everything we install
   [ -f "$CODEX_DIR/AGENTS.override.md" ] && { warn "$CODEX_DIR/AGENTS.override.md exists — it SHADOWS the global AGENTS.md"; rc=1; }
 
-  # Codex pointer targets must resolve, or the model silently reads nothing
+  # Codex pointer targets must resolve, or the model silently reads nothing.
+  # Only real pointer lines ("... -> /abs/path.md") count — rule prose mentions
+  # relative paths like `docs/architecture.md`, which are not pointers.
   if [ -f "$CODEX_DIR/AGENTS.md" ]; then
-    grep -o '/[^ ]*\.md' "$CODEX_DIR/AGENTS.md" 2>/dev/null | sort -u | while read -r t; do
+    sed -n 's/.*-> \(\/[^ ]*\.md\).*/\1/p' "$CODEX_DIR/AGENTS.md" 2>/dev/null | sort -u | while read -r t; do
       [ -e "$t" ] || warn "dangling pointer in codex AGENTS.md: $t"
     done
   fi
@@ -519,6 +521,29 @@ cmd_init() {
     cp -- "$f" "$dir/.agent/rules/$(basename -- "$f" | sed 's/^airules-//')"
   done
   log "created $dir/.agent/ (context, rules, task_history)"
+
+  # docs/ — ten hand-written documents plus decisions/ and a generated/ warning.
+  # Idempotent: never overwrites a file that already exists.
+  _scaffold=$DIST/skills/idn-project-scaffold/templates
+  if [ -d "$_scaffold" ]; then
+    mkdir -p "$dir/docs/decisions" "$dir/docs/generated"
+    _made=0
+    for f in "$_scaffold"/*.md; do
+      _n=$(basename -- "$f")
+      case $_n in
+        decision-template.md) _dst=$dir/docs/decisions/_TEMPLATE.md ;;
+        generated-README.md)  _dst=$dir/docs/generated/README.md ;;
+        *)                    _dst=$dir/docs/$_n ;;
+      esac
+      [ -e "$_dst" ] && continue
+      cp -- "$f" "$_dst"
+      _made=$((_made + 1))
+    done
+    log "created $dir/docs/ ($_made file(s); existing files untouched)"
+  else
+    warn "no scaffold templates at $_scaffold — skipping docs/"
+  fi
+
   log ""
   log "review the files, then commit them."
 }

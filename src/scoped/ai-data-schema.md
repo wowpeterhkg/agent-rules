@@ -1,0 +1,111 @@
+---
+paths:
+  - "**/migrations/**"
+  - "**/*.sql"
+  - "**/prisma/schema.prisma"
+  - "**/entities/**"
+  - "**/models/**"
+  - "**/embeddings/**"
+  - "**/rag/**"
+  - "**/*vector*"
+  - "**/*embedding*"
+---
+
+# AI and vector data schema
+
+Rules for storing embeddings, retrieval corpora, and LLM interaction history. Getting these wrong
+is expensive to undo: once data is embedded and indexed, fixing the schema means re-embedding
+everything.
+
+## 1. Keep operational data separate from vector storage
+
+Do not turn the primary relational database into a dump for raw blobs and large vector arrays.
+
+- Transactional business state — users, billing, permissions — stays in normal relational tables.
+- Embeddings live in dedicated vector tables, linked to operational rows by immutable UUID.
+- **Default to `pgvector` inside PostgreSQL.** It is the approved stack, it keeps one backup and
+  one transaction boundary, and it supports metadata pre-filtering natively. Move to a dedicated
+  store (Qdrant, Pinecone, Milvus) only on evidence: tens of millions of vectors, recall/latency
+  targets pgvector cannot hit, or index builds that no longer fit in memory. Name the number
+  before proposing the move — a second datastore is a permanent operational cost.
+
+## 2. Version the embedding model and dimension
+
+Embeddings from different models, or different versions of one model, occupy non-comparable
+vector spaces. Running similarity across them returns confident nonsense.
+
+Every vector table carries:
+
+- `model_name` — e.g. `text-embedding-3-small`
+- `dimensions` — e.g. `1536`
+- `chunk_strategy_version` — e.g. `v2_512_overlap50`
+- `distance_metric` — cosine, L2, inner product. Comparing across metrics is also a bug.
+- `content_hash` — hash of the exact text embedded, so re-embedding is idempotent and drift is
+  detectable.
+
+Queries must filter on model and dimension, not assume them. A dimension mismatch should fail
+loudly at write time, not silently degrade retrieval.
+
+## 3. Model parent-child for chunking and lineage
+
+Retrieval works on chunks; users and models need the surrounding context.
+
+- **`documents`** — id, source URI, author, access scope, raw text, timestamps.
+- **`document_chunks`** — `chunk_id`, `parent_document_id`, `chunk_index`, `page_number`,
+  `token_count`, `text_content`, `embedding`, plus the versioning columns above.
+
+Deleting a parent cascades to chunks and their vectors. A chunk that outlives its document is a
+data leak, because access checks live on the parent.
+
+## 4. Pre-filter before the vector math
+
+Similarity search across an entire corpus is expensive and a security risk. Index structured
+metadata alongside vectors so queries filter *before* the ANN search:
+
+- `tenant_id` / `user_id` — **mandatory** for anything multi-tenant. Never rely on similarity
+  ranking to keep tenants apart.
+- `created_at` / `updated_at` — time-range filtering.
+- `access_level`, `category` — indexed columns or JSONB with an index.
+
+Choose the index deliberately and record the choice: HNSW for recall and query speed at higher
+build cost and memory; IVFFlat for cheaper builds and lower memory at some recall cost. Note the
+recall/latency trade-off in `docs/decisions/`.
+
+## 5. Treat LLM interactions as structured events
+
+Chat history is auditable event data, not a blob of strings.
+
+`ai_conversations` and `ai_messages` carry at least:
+
+- `message_id` (UUID), `session_id` (UUID, indexed)
+- `role` — `user`, `assistant`, `system`, `tool`
+- `prompt_tokens`, `completion_tokens` — cost tracking is not optional
+- `model_used`, `latency_ms`, `finish_reason`
+- `tool_calls` (JSONB) — function arguments and outputs
+- `user_feedback` (smallint: -1, 0, 1)
+
+Two additions that are learned the hard way:
+
+- **Never write credentials, tokens, or raw PII into `tool_calls`.** It is the least-reviewed
+  column in the schema and the most likely to be exported wholesale.
+- **Set a retention policy on day one.** Conversation tables grow without bound and are full of
+  personal data. Decide what is deleted, when, and record it in `docs/data-model.md`.
+
+## 6. Scrub PII, and make deletion actually work
+
+Once PII is encoded into a high-dimensional vector it cannot be selectively removed — only
+re-indexed.
+
+- Scrub PII **before** text reaches the embedding model.
+- Map every vector row back to the operational `user_id` so a deletion request cascades and purges
+  vectors immediately, not on a later rebuild.
+- A deletion that leaves orphaned embeddings has not deleted anything. Test the cascade.
+
+## 7. Re-embedding is a job, never a request
+
+Changing model, dimension, or chunk strategy invalidates the corpus.
+
+- Re-embedding runs as a resumable background job writing to a new `model_name` /
+  `chunk_strategy_version`, with the old vectors still serving traffic.
+- Cut over by changing the query filter, once coverage is complete. Then drop the old rows.
+- Never re-embed inside a request path, and never delete the old vectors first.

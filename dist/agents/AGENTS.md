@@ -258,6 +258,173 @@ If you wrote 200 lines and it could be 50, rewrite it before showing it.
 Maximum three attempts with the same approach. If a strategy fails three times you are looking at
 the wrong thing — change strategy, do not retry.
 
+# Design defaults
+
+These are defaults, not guardrails. Rules 00-40 always win, and an explicit instruction from the
+human wins over anything here. Each entry names the skill to load when you need the full
+reasoning — but load at most one per task, per rule 60.
+
+## Dependency direction — `book-clean-architecture`
+
+- Source dependencies point inward, toward policy. Domain and use-case code must not import
+  frameworks, databases, HTTP handlers, queues, UI types, or vendor SDKs.
+- Inner layers own the interfaces they need; outer layers implement them. Concrete wiring belongs
+  in a composition root, not inside a use case.
+- Pass plain request and response models across boundaries. Never pass a web request, an ORM row,
+  or a framework response object into or out of core logic.
+- Keep adapters humble: controllers, presenters, and gateways translate formats and call use
+  cases. They do not make business decisions.
+- Organize by feature or capability before technical buckets. A `common/` or `utils/` folder that
+  becomes an escape hatch is an architecture problem, not a naming one.
+- When a deadline forces a compromise, keep it at the outermost layer, say so, and leave a path
+  back.
+
+## Responsibility layering — `book-enterprise-patterns`
+
+- Presentation, application workflow, domain logic, data access, and transaction management are
+  distinct responsibilities. They may not collapse into one class.
+- Match the pattern to the pressure: a transaction script for a short independent flow; a domain
+  model once invariants, identity, and lifecycle are real. Escalate when duplication grows — do
+  not start with ceremony.
+- Repositories speak domain terms and hide SQL and mapping. DTOs are transport shapes, not domain
+  objects.
+- Transaction boundaries live in the service or workflow layer, are explicit, and stay short.
+  Remote calls belong outside them.
+- Do not distribute by default. If you must, design the remote contract separately from the local
+  objects and budget latency, versioning, and partial failure.
+
+## Readability — `book-code-construction`
+
+- Write for local reasoning: a reader should follow the path without reconstructing hidden state.
+- One level of abstraction per function. Separate setup, validation, computation, and side
+  effects rather than interleaving them.
+- Separate commands from queries. A function that answers should not also mutate.
+- No boolean flag parameters that switch behaviour — model the concept instead.
+- Precise names, one term per concept. If a comment exists to explain control flow, fix the code
+  first; comments are for rationale, constraints, and contracts.
+- Keep the happy path readable; make errors, invalid states, and cleanup explicit.
+
+Note: prefer clear, cohesive units over arbitrarily small ones. A function split until it fits a
+line count, at the cost of a reader following six hops, is worse than the function you started
+with.
+
+## Data semantics — `book-data-intensive`
+
+- Before changing how data is stored or moved, state: the source of truth, whether stale reads
+  are acceptable, and when a write counts as durable versus merely accepted.
+- Treat crashes, timeouts, duplicates, and unknown downstream outcomes as normal inputs. Anything
+  that can be retried must be idempotent — by a deduplication key or a naturally idempotent
+  transition.
+- Caches, search indexes, read models, and denormalized copies are **derived data**. Each needs a
+  propagation path, observable lag, and a way to rebuild.
+- Preserve only the ordering the business actually needs, and scope it — per key, per partition,
+  per entity history.
+- Schemas, events, and APIs are contracts that evolve across old readers, old writers, and
+  in-flight messages. Additive changes first.
+- Align service boundaries with data ownership. Do not split one tightly consistent concept
+  across services, and keep cross-service joins off hot paths.
+
+# Approved technology stack
+
+Use these without discussion. Anything outside them is a proposal, not a step. Language-level
+conventions live in the stack rules that load when you touch matching files; this rule is only
+about *what is allowed*.
+
+| Layer | Approved |
+| --- | --- |
+| Frontend | React 19, Vite, TypeScript strict, Tailwind (v4 new / v3 existing), TanStack Query, zod, Vitest |
+| Backend — TypeScript | NestJS; Express or Fastify only for a single-purpose service |
+| Backend — Python / AI | FastAPI, Pydantic v2 |
+| Backend — Go | high-concurrency cores, streaming pipelines |
+| Data | PostgreSQL + Prisma; ClickHouse (+ PeerDB CDC) for analytics; Redis for cache |
+| Infra | Docker multi-stage, Compose, nginx, Docker Hub |
+
+The frontend holds no secrets and never talks to a database. ClickHouse is never written by
+application code and never read for transactional queries. Anything in Redis must be
+reconstructible — it is not a source of truth.
+
+## Choosing between approved backends
+
+The set is broad on purpose, which makes the selection criteria the part that matters.
+
+| Workload | Choose |
+| --- | --- |
+| Modules, auth surface, several bounded areas | NestJS |
+| Python, ML, model orchestration, Pydantic-heavy | FastAPI |
+| High concurrency, streaming, throughput-bound | Go |
+| One endpoint deep, no auth surface | Express or Fastify |
+
+State which you are using and why at project start, and record it in `docs/decisions/`. Never mix
+two backend frameworks inside one service.
+
+## Anything not listed
+
+Adding a framework, ORM, database, state manager, or major library that is not above is a
+decision, not a step:
+
+1. Name it.
+2. Say what it replaces, and why the approved option does not fit.
+3. Give the cost — operational surface, what it locks in.
+4. **STOP and wait for a yes.** Do not install it first.
+
+This extends the dependency rule in `20`. A transitive dependency of an approved tool is fine; a
+new top-level choice is not.
+
+## Existing code is exempt
+
+Projects already built on something else stay as they are. Never migrate a project to this stack
+on your own initiative, and never fold a migration into unrelated work. Say it once as a
+suggestion and leave it.
+
+# Project structure and documentation
+
+## Structure
+
+Repos follow the standard layout: `AGENTS.md` at the root as the entry point, `CLAUDE.md` as a
+bridge to it, `.agent/` for agent-facing context, `docs/` for documentation, `src/` split by tier,
+`tests/`. The full tree and templates are in the `idn-project-scaffold` skill.
+
+If a repo does not follow this, say so rather than inventing a third structure. Do not restructure
+an existing repo as a side effect of other work — that is a change to propose, not to perform.
+
+## Keep documentation current, in the same change
+
+When work alters any of the following, update the document **in the same commit as the code** —
+not as a follow-up, not in a later cleanup:
+
+| The work changes | Update |
+| --- | --- |
+| services, boundaries, or data flow | `docs/architecture.md` |
+| an architectural choice | a new ADR in `docs/decisions/` |
+| business rules or domain vocabulary | `docs/domain.md` |
+| entity ownership, derivation, or lifecycle | `docs/data-model.md` |
+| auth mechanism, threat model, data classification | `docs/security.md` |
+| roles or permissions | `docs/permissions.md` |
+| how to run, deploy, back up, or restore | `docs/operations.md` |
+| a discovered limitation or accepted debt | `docs/known-issues.md` |
+| this project's testing approach | `docs/testing-strategy.md` |
+| this project's API conventions | `docs/api-design.md` |
+
+Routine bug fixes, internal refactors, and anything with no observable change do not trigger a
+documentation update. Do not write filler to satisfy the rule.
+
+If a document should change but you cannot write it accurately, say which one and why, rather
+than guessing or leaving it silently stale.
+
+## Generated documentation
+
+`docs/generated/` holds the API reference and the database schema, produced from source. **Never
+hand-edit it.** A stale hand-written schema is worse than no schema, because an agent reads it and
+confidently writes wrong code. If generation is not wired up yet, record that in
+`docs/known-issues.md` rather than writing those files by hand.
+
+## Decisions
+
+Record architectural choices as numbered ADRs in `docs/decisions/` — context, decision,
+alternatives rejected, consequences. The rejected alternatives are the part with lasting value: a
+decision without them reads as arbitrary later, and someone re-opens it. ADRs do not go stale —
+a superseded decision is still a true record. Supersede, never rewrite.
+
 # Precedence and book skills
 
 ## Precedence, highest first
@@ -287,6 +454,106 @@ dependency direction → `book-clean-architecture`. ORM, mapping, transactions �
 `book-enterprise-patterns`. Consistency, events, schema evolution → `book-data-intensive`.
 Timeouts, retries, deploys, incidents → `book-production-reliability`. General craft →
 `book-pragmatic-programmer`. No match → no book skill.
+
+<!-- applies to: **/migrations/**, **/*.sql, **/prisma/schema.prisma, **/entities/**, **/models/**, **/embeddings/**, **/rag/**, **/*vector*, **/*embedding* -->
+# AI and vector data schema
+
+Rules for storing embeddings, retrieval corpora, and LLM interaction history. Getting these wrong
+is expensive to undo: once data is embedded and indexed, fixing the schema means re-embedding
+everything.
+
+## 1. Keep operational data separate from vector storage
+
+Do not turn the primary relational database into a dump for raw blobs and large vector arrays.
+
+- Transactional business state — users, billing, permissions — stays in normal relational tables.
+- Embeddings live in dedicated vector tables, linked to operational rows by immutable UUID.
+- **Default to `pgvector` inside PostgreSQL.** It is the approved stack, it keeps one backup and
+  one transaction boundary, and it supports metadata pre-filtering natively. Move to a dedicated
+  store (Qdrant, Pinecone, Milvus) only on evidence: tens of millions of vectors, recall/latency
+  targets pgvector cannot hit, or index builds that no longer fit in memory. Name the number
+  before proposing the move — a second datastore is a permanent operational cost.
+
+## 2. Version the embedding model and dimension
+
+Embeddings from different models, or different versions of one model, occupy non-comparable
+vector spaces. Running similarity across them returns confident nonsense.
+
+Every vector table carries:
+
+- `model_name` — e.g. `text-embedding-3-small`
+- `dimensions` — e.g. `1536`
+- `chunk_strategy_version` — e.g. `v2_512_overlap50`
+- `distance_metric` — cosine, L2, inner product. Comparing across metrics is also a bug.
+- `content_hash` — hash of the exact text embedded, so re-embedding is idempotent and drift is
+  detectable.
+
+Queries must filter on model and dimension, not assume them. A dimension mismatch should fail
+loudly at write time, not silently degrade retrieval.
+
+## 3. Model parent-child for chunking and lineage
+
+Retrieval works on chunks; users and models need the surrounding context.
+
+- **`documents`** — id, source URI, author, access scope, raw text, timestamps.
+- **`document_chunks`** — `chunk_id`, `parent_document_id`, `chunk_index`, `page_number`,
+  `token_count`, `text_content`, `embedding`, plus the versioning columns above.
+
+Deleting a parent cascades to chunks and their vectors. A chunk that outlives its document is a
+data leak, because access checks live on the parent.
+
+## 4. Pre-filter before the vector math
+
+Similarity search across an entire corpus is expensive and a security risk. Index structured
+metadata alongside vectors so queries filter *before* the ANN search:
+
+- `tenant_id` / `user_id` — **mandatory** for anything multi-tenant. Never rely on similarity
+  ranking to keep tenants apart.
+- `created_at` / `updated_at` — time-range filtering.
+- `access_level`, `category` — indexed columns or JSONB with an index.
+
+Choose the index deliberately and record the choice: HNSW for recall and query speed at higher
+build cost and memory; IVFFlat for cheaper builds and lower memory at some recall cost. Note the
+recall/latency trade-off in `docs/decisions/`.
+
+## 5. Treat LLM interactions as structured events
+
+Chat history is auditable event data, not a blob of strings.
+
+`ai_conversations` and `ai_messages` carry at least:
+
+- `message_id` (UUID), `session_id` (UUID, indexed)
+- `role` — `user`, `assistant`, `system`, `tool`
+- `prompt_tokens`, `completion_tokens` — cost tracking is not optional
+- `model_used`, `latency_ms`, `finish_reason`
+- `tool_calls` (JSONB) — function arguments and outputs
+- `user_feedback` (smallint: -1, 0, 1)
+
+Two additions that are learned the hard way:
+
+- **Never write credentials, tokens, or raw PII into `tool_calls`.** It is the least-reviewed
+  column in the schema and the most likely to be exported wholesale.
+- **Set a retention policy on day one.** Conversation tables grow without bound and are full of
+  personal data. Decide what is deleted, when, and record it in `docs/data-model.md`.
+
+## 6. Scrub PII, and make deletion actually work
+
+Once PII is encoded into a high-dimensional vector it cannot be selectively removed — only
+re-indexed.
+
+- Scrub PII **before** text reaches the embedding model.
+- Map every vector row back to the operational `user_id` so a deletion request cascades and purges
+  vectors immediately, not on a later rebuild.
+- A deletion that leaves orphaned embeddings has not deleted anything. Test the cascade.
+
+## 7. Re-embedding is a job, never a request
+
+Changing model, dimension, or chunk strategy invalidates the corpus.
+
+- Re-embedding runs as a resumable background job writing to a new `model_name` /
+  `chunk_strategy_version`, with the old vectors still serving traffic.
+- Cut over by changing the query filter, once coverage is complete. Then drop the old rows.
+- Never re-embed inside a request path, and never delete the old vectors first.
 
 <!-- applies to: **/api/**, **/*.controller.ts, **/*.service.ts, **/*.module.ts, **/*.guard.ts, **/services/**, **/routes/** -->
 # Backend and API
@@ -365,6 +632,40 @@ Timeouts, retries, deploys, incidents → `book-production-reliability`. General
 For the OLTP/OLAP split: PostgreSQL holds transactional state; ClickHouse holds analytics, event
 logs, and time series; replication between them is CDC (PeerDB), not hand-written ETL. Do not
 query the analytics store for transactional reads, and do not write application state into it.
+
+## Schema hygiene
+
+The mess usually comes from small inconsistencies compounding, not from one bad decision.
+
+- **Naming is consistent or it is wrong.** Pick `snake_case`, plural table names, singular column
+  names, and keep them. Match the existing convention in a repo even if you would choose
+  differently; never introduce a second one.
+- **Primary keys**: UUID for anything exposed externally or synced across services; bigint
+  identity for internal high-volume rows. Never a natural key that can change — an email is not a
+  primary key.
+- **Every table gets `created_at` and `updated_at`**, `timestamptz`, UTC. Never store a local
+  time, never a naive timestamp.
+- **Money is `numeric`, never a float**, and stores the currency alongside it. Floats lose cents
+  and the loss is silent.
+- **Enumerated values**: a lookup table when the set changes with business rules; a native enum or
+  a check constraint when it is genuinely fixed. Do not use a bare string column and hope.
+- **Constraints belong in the database.** Foreign keys, `NOT NULL`, uniqueness, and check
+  constraints are enforcement; application validation is a user-experience nicety. If the
+  invariant matters, the database enforces it.
+- **JSONB is for genuinely variable shapes** — third-party payloads, user-defined fields, tool
+  call arguments. It is not a way to avoid designing a schema. Anything queried or filtered often
+  becomes a column with an index.
+- **Soft deletes are a decision, not a default.** If a table uses `deleted_at`, every query and
+  unique index must account for it, or you get resurrected rows and duplicate-key errors. Prefer
+  hard deletes with an audit trail unless retention requires otherwise.
+- **Multi-tenancy**: `tenant_id` on every tenant-scoped table, in every index that matters, and
+  enforced at the query layer — not left to application discipline. A missing tenant filter is a
+  data breach, not a bug.
+- **One writer per table.** If two services write the same table, they are one service with a
+  confused boundary. Reads across a boundary go through an API or a derived read model.
+- **Index for the queries you actually run.** Every foreign key, every column used for filtering
+  or sorting on a hot path. Composite index column order follows the query's filter order. An
+  unused index still costs on every write.
 
 <!-- applies to: **/*.py -->
 # Python

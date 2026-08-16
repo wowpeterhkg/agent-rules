@@ -198,6 +198,73 @@ handling for impossible scenarios.
 
 **Persistence.** Max three attempts with one approach; then change strategy, don't retry.
 
+# Design defaults
+
+Advisory, not guardrails: rules 00-40 always win, and the human's instruction wins over these.
+Read the named skill before applying any of this at depth.
+
+- **Dependencies point inward.** Domain and use-case code must not import frameworks, ORMs, HTTP
+  types, or vendor SDKs. Inner layers declare the interfaces they need; outer layers implement
+  them; wiring happens at the composition root. → `book-clean-architecture`
+- **Do not pass framework objects across a boundary.** No request objects, ORM rows, or vendor
+  payloads into or out of core logic — translate at the edge. → `book-clean-architecture`
+- **One owner per responsibility**: transport, workflow, domain logic, persistence, transactions.
+  Controllers and repositories hold no business decisions. Match the pattern to the force — a
+  transaction script for a simple flow, a domain model when invariants and lifecycle are real.
+  → `book-enterprise-patterns`
+- **Write for local reasoning.** One level of abstraction per function; separate commands from
+  queries; no boolean flag parameters; precise names, one term per concept; comments carry
+  rationale, not narration. → `book-code-construction`
+- **State the data contract before changing data.** Source of truth, whether stale reads are
+  allowed, when a write is durable and visible. Anything retried must be idempotent. Caches,
+  read models, and search indexes are derived data and need a rebuild path. Schemas and events
+  are contracts evolving across old readers and in-flight messages. → `book-data-intensive`
+
+# Approved technology stack
+
+Use without discussion. Anything else is a proposal, not a step.
+
+- Frontend: React 19 + Vite + TypeScript strict, Tailwind (v4 new / v3 existing), TanStack Query,
+  zod at boundaries, Vitest.
+- Backend TS: NestJS for services with modules and an auth surface; Express or Fastify only for a
+  service one endpoint deep.
+- Backend Python/AI: FastAPI + Pydantic v2.  Backend Go: high-concurrency cores and pipelines.
+- Data: PostgreSQL + Prisma as source of truth. ClickHouse for analytics fed by PeerDB CDC, never
+  written by app code. Redis for cache and ephemeral state only.
+- Infra: Docker multi-stage, Compose, nginx, Docker Hub.
+
+Choosing a backend: NestJS when there are real modules and auth; FastAPI when the work is Python
+or ML; Go when concurrency is the constraint; Express/Fastify only when one endpoint deep. State
+which and why at project start, and record it in `docs/decisions/`. Never mix two backend
+frameworks in one service.
+
+**Off-list procedure.** For any framework, ORM, database, state manager, or major library not
+listed: name it, say what it replaces and why the approved option does not fit, give the cost,
+then **STOP and wait for a yes**. Do not install first and ask after. A transitive dependency of
+an approved tool is fine; a new top-level choice is not.
+
+**Existing code is exempt.** Projects on something else stay as they are. Never migrate a project
+to this stack on your own initiative — say it once as a suggestion and leave it.
+
+# Project structure and documentation
+
+- Repos follow the standard structure: `AGENTS.md` at the root as entry point, `.agent/` for
+  agent context, `docs/` for documentation, `src/` split by tier, `tests/`. If a repo does not
+  follow it, say so — do not invent a third structure, and do not restructure unasked.
+- **Update documentation in the same change as the code**, whenever the work alters
+  architecture, schema, API surface, permissions, setup, or introduces a known issue. Map:
+  boundaries → `docs/architecture.md`; an architectural choice → a new ADR in `docs/decisions/`;
+  business rules or vocabulary → `docs/domain.md`; ownership or derivation → `docs/data-model.md`;
+  auth or data classification → `docs/security.md`; roles → `docs/permissions.md`; run/deploy/
+  backup → `docs/operations.md`; a limitation or accepted debt → `docs/known-issues.md`.
+- Routine fixes and refactors with no observable change do not trigger a doc update. Do not write
+  filler to satisfy the rule. If a doc should change but you cannot write it accurately, say
+  which and why rather than guessing or leaving it silently stale.
+- **Never hand-edit `docs/generated/`** — the API reference and DB schema are produced from
+  source. A stale hand-written schema is worse than none, because it will be believed.
+- Load `idn-project-scaffold` for the structure, the ten-document set, and templates. Run
+  `airules init` in a repo that has none of it.
+
 # Precedence and book skills
 
 ## Precedence, highest first
@@ -235,6 +302,7 @@ Timeouts, retries, deploys, incidents → `book-production-reliability`. General
 These are not loaded automatically. Open the one that matches what you are about to
 touch. A copy also lives in the project's `.agent/rules/` where one has been set up.
 
+- **/migrations/** **/*.sql -> @AIRULES_PREFIX@/dist/claude/rules/airules-ai-data-schema.md
 - **/api/** **/*.controller.ts -> @AIRULES_PREFIX@/dist/claude/rules/airules-backend-api.md
 - .github/workflows/** **/.github/workflows/** -> @AIRULES_PREFIX@/dist/claude/rules/airules-ci-workflows.md
 - **/Dockerfile* **/docker-compose*.yml -> @AIRULES_PREFIX@/dist/claude/rules/airules-containers.md
@@ -245,6 +313,7 @@ touch. A copy also lives in the project's `.agent/rules/` where one has been set
 - **/*.spec.ts **/*.test.ts -> @AIRULES_PREFIX@/dist/claude/rules/airules-tests.md
 - **/*.ts **/*.tsx -> @AIRULES_PREFIX@/dist/claude/rules/airules-typescript.md
 - skill `idn-cloud-deploy` -> @AIRULES_PREFIX@/dist/skills/idn-cloud-deploy/SKILL.md
+- skill `idn-project-scaffold` -> @AIRULES_PREFIX@/dist/skills/idn-project-scaffold/SKILL.md
 - skill `book-refactoring` -> @AIRULES_PREFIX@/dist/skills/book-refactoring/SKILL.md
 - skill `book-legacy-code` -> @AIRULES_PREFIX@/dist/skills/book-legacy-code/SKILL.md
 - skill `book-domain-driven-design` -> @AIRULES_PREFIX@/dist/skills/book-domain-driven-design/SKILL.md

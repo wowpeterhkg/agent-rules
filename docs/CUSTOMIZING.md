@@ -24,7 +24,11 @@ from your fork.
 | `src/core/20-destructive-actions.md` | Moderate | Mostly universal; the specific thresholds ("more than five files") are arbitrary. |
 | `src/core/30-secrets-and-data.md` | Weak | Close to universal. Change only to add your own data classes. |
 | `src/core/40-verification.md` | Weak | Close to universal. |
+| `src/core/56-approved-stack.md` | **House-specific** | One team's approved technology list. A fork should replace this wholesale, not inherit it. |
+| `src/core/57-project-structure.md` | **Strong** | The ten-document set and the same-commit update obligation. Keep the obligation; change the document list to suit. |
+| `src/core/55-design-defaults.md` | Moderate | Distilled from four books, organized by decision. Advisory rather than a guardrail — and the first thing to move into a skill if the always-on layer gets too heavy. |
 | `src/scoped/*` | Moderate | Stack conventions. Delete the languages you do not use. |
+| `src/scoped/ai-data-schema.md` | Moderate | Embedding, RAG, and LLM-interaction schema rules. Delete it if you do no AI data work. |
 | `src/skills/idn-*` | **House-specific** | Procedures for one team's infrastructure. See below. |
 | `vendor/books/*` | Third-party | Never edit. See `vendor/SOURCES.md`. |
 

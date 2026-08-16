@@ -25,3 +25,37 @@ paths:
 For the OLTP/OLAP split: PostgreSQL holds transactional state; ClickHouse holds analytics, event
 logs, and time series; replication between them is CDC (PeerDB), not hand-written ETL. Do not
 query the analytics store for transactional reads, and do not write application state into it.
+
+## Schema hygiene
+
+The mess usually comes from small inconsistencies compounding, not from one bad decision.
+
+- **Naming is consistent or it is wrong.** Pick `snake_case`, plural table names, singular column
+  names, and keep them. Match the existing convention in a repo even if you would choose
+  differently; never introduce a second one.
+- **Primary keys**: UUID for anything exposed externally or synced across services; bigint
+  identity for internal high-volume rows. Never a natural key that can change — an email is not a
+  primary key.
+- **Every table gets `created_at` and `updated_at`**, `timestamptz`, UTC. Never store a local
+  time, never a naive timestamp.
+- **Money is `numeric`, never a float**, and stores the currency alongside it. Floats lose cents
+  and the loss is silent.
+- **Enumerated values**: a lookup table when the set changes with business rules; a native enum or
+  a check constraint when it is genuinely fixed. Do not use a bare string column and hope.
+- **Constraints belong in the database.** Foreign keys, `NOT NULL`, uniqueness, and check
+  constraints are enforcement; application validation is a user-experience nicety. If the
+  invariant matters, the database enforces it.
+- **JSONB is for genuinely variable shapes** — third-party payloads, user-defined fields, tool
+  call arguments. It is not a way to avoid designing a schema. Anything queried or filtered often
+  becomes a column with an index.
+- **Soft deletes are a decision, not a default.** If a table uses `deleted_at`, every query and
+  unique index must account for it, or you get resurrected rows and duplicate-key errors. Prefer
+  hard deletes with an audit trail unless retention requires otherwise.
+- **Multi-tenancy**: `tenant_id` on every tenant-scoped table, in every index that matters, and
+  enforced at the query layer — not left to application discipline. A missing tenant filter is a
+  data breach, not a bug.
+- **One writer per table.** If two services write the same table, they are one service with a
+  confused boundary. Reads across a boundary go through an API or a derived read model.
+- **Index for the queries you actually run.** Every foreign key, every column used for filtering
+  or sorting on a hot path. Composite index column order follows the query's filter order. An
+  unused index still costs on every write.

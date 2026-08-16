@@ -27,12 +27,17 @@ VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip() if (ROOT / "VER
 
 # Byte budgets. Claude can afford the full core; Codex shares a 32 KiB total doc
 # budget with every project AGENTS.md, so its artifact is capped much harder.
-BUDGET_CLAUDE_CORE = 16384
+# Raised from 16 KiB when the design-defaults layer was added. Every byte here is
+# paid on every turn of every task, so treat an increase as a decision, not a fix:
+# prefer moving content into a skill.
+BUDGET_CLAUDE_CORE = 24576
 # Codex shares one budget across global + every project AGENTS.md. Default is 32 KiB;
-# install raises it to 64 KiB. 14 KiB here still leaves ~18 KiB for project docs even
+# install raises it to 64 KiB. 16 KiB here still leaves 16 KiB for project docs even
 # if the config patch never ran.
-BUDGET_CODEX = 14336
-BUDGET_SCOPED_TOTAL = 12288
+BUDGET_CODEX = 18432
+# Scoped rules load only on a path match, so this budget is far less precious than
+# core's — raised when the AI/vector schema rules were added.
+BUDGET_SCOPED_TOTAL = 24576
 SKILL_DESC_MAX = 1536  # description + when_to_use, combined, per Claude's truncation
 
 PREFIX_TOKEN = "@AIRULES_PREFIX@"  # substituted with the install path at install time
@@ -127,9 +132,11 @@ def scan_forbidden(path: Path, text: str, errors: list[str]) -> None:
 
 def check_shell_blocks(path: Path, text: str, errors: list[str]) -> None:
     """Catch the newline-eaten corruption seen in the source agent.md export."""
+    # Narrow on purpose: these patterns only occur when newlines were eaten during an
+    # export. A broad rule like \bfi[a-z]+\b matches "first" and "finally".
     suspicious = re.compile(
-        r"(apt-get\s+\w+[a-z-]*sudo|sudo\s+\S+[a-z]sudo\b|\bdone[a-z]|"
-        r"<server-ip>cd\b|>/dev/nullsudo|\bfi[a-z]{3,}\b)"
+        r"(apt-get\s+\w+[a-z-]*sudo|sudo\s+\S+[a-z]sudo\b|\bdone[a-z]{2,}|"
+        r"<server-ip>cd\b|>/dev/nullsudo|\bfi(sudo|cd|echo)\b)"
     )
     for block in re.findall(r"```(?:bash|sh)?\n(.*?)```", text, re.S):
         for match in suspicious.finditer(block):
