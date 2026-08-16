@@ -1,16 +1,20 @@
 {
   "artifacts": {
     "agents/AGENTS.md": {
-      "bytes": 23345,
-      "sha256": "d8612ccf4cedaba1c50bfc426e65e30a5ae25ce5d38d7802ad28ea362dfd7ea6"
+      "bytes": 39224,
+      "sha256": "0bd9830ffa651a9ed140e8e7581a4bcbc90cbb3a29a6fc07937a561d6d8f5f8f"
     },
     "claude/CLAUDE.md": {
       "bytes": 341,
       "sha256": "d2468b74a5d1825525d1297f7d3354922ae681bf601c193d5bd36e4faf01bcc0"
     },
     "claude/rules/airules-00-core.md": {
-      "bytes": 13538,
-      "sha256": "1f712d64c41ab37798e9677019fb8555092f7e7081f0ac4f0d32b1d02413b158"
+      "bytes": 22119,
+      "sha256": "6adedab23e41387c5cd10972388015bddd0fd96674aff033f45b2540e86ea2d6"
+    },
+    "claude/rules/airules-ai-data-schema.md": {
+      "bytes": 5090,
+      "sha256": "4fac87e7aa3277037f8f85b8071265fbe1428431fe4eb8734ad758a697844326"
     },
     "claude/rules/airules-backend-api.md": {
       "bytes": 1811,
@@ -25,8 +29,8 @@
       "sha256": "19aa18760a210b0e4fd1c5f7e42f67c23a4cd5e01440ad588f47cc4555265641"
     },
     "claude/rules/airules-persistence.md": {
-      "bytes": 1279,
-      "sha256": "3ca9918db233de5769bc0f78f128a8e7ca87234332cec437c229a8200ca09aec"
+      "bytes": 3626,
+      "sha256": "1d00eb786426bb6e2c502c74e89b0ee96c5f806053ec1ccbc81980a41e01d559"
     },
     "claude/rules/airules-python.md": {
       "bytes": 1341,
@@ -49,8 +53,8 @@
       "sha256": "a00c5db02bb8a5decdf660155a0f351c07cce4ccced0dc87ccc0d343c8b5f829"
     },
     "codex/AGENTS.md": {
-      "bytes": 13260,
-      "sha256": "52fb781a63988f2454651c1881c2bc7bf24fe109280c981c3f54eb81e442db18"
+      "bytes": 17987,
+      "sha256": "94d9e3ab0505de351a60d7df1a193128608572f70b051e868440621ec75ab943"
     },
     "skills/book-clean-architecture/SKILL.md": {
       "bytes": 6777,
@@ -135,22 +139,70 @@
     "skills/idn-cloud-deploy/SKILL.md": {
       "bytes": 6172,
       "sha256": "e4a4fa2ccd21181fd7dbcfd8b1e13a96172ab22659dce3f934ad099a442a3149"
+    },
+    "skills/idn-project-scaffold/SKILL.md": {
+      "bytes": 5724,
+      "sha256": "88dd8c46bdaf2708b5ddcac5000433490f557f48309e2f2863aee6b5a96e9594"
+    },
+    "skills/idn-project-scaffold/templates/api-design.md": {
+      "bytes": 566,
+      "sha256": "ce17573e76455b328b39e4711f345df4ee26c60b7587f2aa093ab7b95690c449"
+    },
+    "skills/idn-project-scaffold/templates/architecture.md": {
+      "bytes": 709,
+      "sha256": "6bf173bb7adf71252c30ba23d7cd644fb587f9e6971091bda2b8dd0e5140d9c3"
+    },
+    "skills/idn-project-scaffold/templates/data-model.md": {
+      "bytes": 777,
+      "sha256": "cb01765af617072e1e1345416f9cbfaa0084878346993473c040043c02141716"
+    },
+    "skills/idn-project-scaffold/templates/decision-template.md": {
+      "bytes": 553,
+      "sha256": "0440d4f3a6d496385fa5648e917f69b672ff1c4cc8445dcaa52628ab1a812672"
+    },
+    "skills/idn-project-scaffold/templates/domain.md": {
+      "bytes": 630,
+      "sha256": "12ab02e61fe4f873de05e53a56eedeba72e0da0347db22b97a43c68144421977"
+    },
+    "skills/idn-project-scaffold/templates/generated-README.md": {
+      "bytes": 489,
+      "sha256": "e9edff27003533ba99fccf9d3f8948fd422720a13f623679c3cb4f5bd4ac3a7d"
+    },
+    "skills/idn-project-scaffold/templates/known-issues.md": {
+      "bytes": 504,
+      "sha256": "9a950280d87fc3dc6fdc4ba0d9605119e89e4090be1a06ea87102ceb963f5e39"
+    },
+    "skills/idn-project-scaffold/templates/operations.md": {
+      "bytes": 608,
+      "sha256": "5cabd0a0610db422723286c16d17edfde9495443f26722a4731041fa61a4ecb6"
+    },
+    "skills/idn-project-scaffold/templates/permissions.md": {
+      "bytes": 601,
+      "sha256": "a9623883668f5a540ab95d77bdcf9be0e3d8497cc77512cbce76ae32a7a3a89c"
+    },
+    "skills/idn-project-scaffold/templates/security.md": {
+      "bytes": 754,
+      "sha256": "9301a03aecc5f9f5db2fc3eba84421e6fdebde1859957e57df7bfc2eab7870ae"
+    },
+    "skills/idn-project-scaffold/templates/testing-strategy.md": {
+      "bytes": 519,
+      "sha256": "135442d05a261d7fc89b4b1238122b60f5039bb2b8658ab3e5f304e0acb5a40f"
     }
   },
   "budgets": [
     {
-      "budget": 16384,
-      "bytes": 13538,
+      "budget": 24576,
+      "bytes": 22119,
       "file": "dist/claude/rules/airules-00-core.md"
     },
     {
-      "budget": 14336,
-      "bytes": 13260,
+      "budget": 18432,
+      "bytes": 17987,
       "file": "dist/codex/AGENTS.md"
     }
   ],
   "prefix_token": "@AIRULES_PREFIX@",
-  "scoped_bytes": 10825,
+  "scoped_bytes": 18262,
   "skills": [
     "book-clean-architecture",
     "book-code-construction",
@@ -161,7 +213,8 @@
     "book-pragmatic-programmer",
     "book-production-reliability",
     "book-refactoring",
-    "idn-cloud-deploy"
+    "idn-cloud-deploy",
+    "idn-project-scaffold"
   ],
   "version": "2026.08.16+1"
 }

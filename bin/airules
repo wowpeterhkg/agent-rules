@@ -488,6 +488,29 @@ cmd_init() {
     cp -- "$f" "$dir/.agent/rules/$(basename -- "$f" | sed 's/^airules-//')"
   done
   log "created $dir/.agent/ (context, rules, task_history)"
+
+  # docs/ — ten hand-written documents plus decisions/ and a generated/ warning.
+  # Idempotent: never overwrites a file that already exists.
+  _scaffold=$DIST/skills/idn-project-scaffold/templates
+  if [ -d "$_scaffold" ]; then
+    mkdir -p "$dir/docs/decisions" "$dir/docs/generated"
+    _made=0
+    for f in "$_scaffold"/*.md; do
+      _n=$(basename -- "$f")
+      case $_n in
+        decision-template.md) _dst=$dir/docs/decisions/_TEMPLATE.md ;;
+        generated-README.md)  _dst=$dir/docs/generated/README.md ;;
+        *)                    _dst=$dir/docs/$_n ;;
+      esac
+      [ -e "$_dst" ] && continue
+      cp -- "$f" "$_dst"
+      _made=$((_made + 1))
+    done
+    log "created $dir/docs/ ($_made file(s); existing files untouched)"
+  else
+    warn "no scaffold templates at $_scaffold — skipping docs/"
+  fi
+
   log ""
   log "review the files, then commit them."
 }

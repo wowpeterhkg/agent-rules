@@ -256,6 +256,173 @@ If you wrote 200 lines and it could be 50, rewrite it before showing it.
 Maximum three attempts with the same approach. If a strategy fails three times you are looking at
 the wrong thing — change strategy, do not retry.
 
+# Design defaults
+
+These are defaults, not guardrails. Rules 00-40 always win, and an explicit instruction from the
+human wins over anything here. Each entry names the skill to load when you need the full
+reasoning — but load at most one per task, per rule 60.
+
+## Dependency direction — `book-clean-architecture`
+
+- Source dependencies point inward, toward policy. Domain and use-case code must not import
+  frameworks, databases, HTTP handlers, queues, UI types, or vendor SDKs.
+- Inner layers own the interfaces they need; outer layers implement them. Concrete wiring belongs
+  in a composition root, not inside a use case.
+- Pass plain request and response models across boundaries. Never pass a web request, an ORM row,
+  or a framework response object into or out of core logic.
+- Keep adapters humble: controllers, presenters, and gateways translate formats and call use
+  cases. They do not make business decisions.
+- Organize by feature or capability before technical buckets. A `common/` or `utils/` folder that
+  becomes an escape hatch is an architecture problem, not a naming one.
+- When a deadline forces a compromise, keep it at the outermost layer, say so, and leave a path
+  back.
+
+## Responsibility layering — `book-enterprise-patterns`
+
+- Presentation, application workflow, domain logic, data access, and transaction management are
+  distinct responsibilities. They may not collapse into one class.
+- Match the pattern to the pressure: a transaction script for a short independent flow; a domain
+  model once invariants, identity, and lifecycle are real. Escalate when duplication grows — do
+  not start with ceremony.
+- Repositories speak domain terms and hide SQL and mapping. DTOs are transport shapes, not domain
+  objects.
+- Transaction boundaries live in the service or workflow layer, are explicit, and stay short.
+  Remote calls belong outside them.
+- Do not distribute by default. If you must, design the remote contract separately from the local
+  objects and budget latency, versioning, and partial failure.
+
+## Readability — `book-code-construction`
+
+- Write for local reasoning: a reader should follow the path without reconstructing hidden state.
+- One level of abstraction per function. Separate setup, validation, computation, and side
+  effects rather than interleaving them.
+- Separate commands from queries. A function that answers should not also mutate.
+- No boolean flag parameters that switch behaviour — model the concept instead.
+- Precise names, one term per concept. If a comment exists to explain control flow, fix the code
+  first; comments are for rationale, constraints, and contracts.
+- Keep the happy path readable; make errors, invalid states, and cleanup explicit.
+
+Note: prefer clear, cohesive units over arbitrarily small ones. A function split until it fits a
+line count, at the cost of a reader following six hops, is worse than the function you started
+with.
+
+## Data semantics — `book-data-intensive`
+
+- Before changing how data is stored or moved, state: the source of truth, whether stale reads
+  are acceptable, and when a write counts as durable versus merely accepted.
+- Treat crashes, timeouts, duplicates, and unknown downstream outcomes as normal inputs. Anything
+  that can be retried must be idempotent — by a deduplication key or a naturally idempotent
+  transition.
+- Caches, search indexes, read models, and denormalized copies are **derived data**. Each needs a
+  propagation path, observable lag, and a way to rebuild.
+- Preserve only the ordering the business actually needs, and scope it — per key, per partition,
+  per entity history.
+- Schemas, events, and APIs are contracts that evolve across old readers, old writers, and
+  in-flight messages. Additive changes first.
+- Align service boundaries with data ownership. Do not split one tightly consistent concept
+  across services, and keep cross-service joins off hot paths.
+
+# Approved technology stack
+
+Use these without discussion. Anything outside them is a proposal, not a step. Language-level
+conventions live in the stack rules that load when you touch matching files; this rule is only
+about *what is allowed*.
+
+| Layer | Approved |
+| --- | --- |
+| Frontend | React 19, Vite, TypeScript strict, Tailwind (v4 new / v3 existing), TanStack Query, zod, Vitest |
+| Backend — TypeScript | NestJS; Express or Fastify only for a single-purpose service |
+| Backend — Python / AI | FastAPI, Pydantic v2 |
+| Backend — Go | high-concurrency cores, streaming pipelines |
+| Data | PostgreSQL + Prisma; ClickHouse (+ PeerDB CDC) for analytics; Redis for cache |
+| Infra | Docker multi-stage, Compose, nginx, Docker Hub |
+
+The frontend holds no secrets and never talks to a database. ClickHouse is never written by
+application code and never read for transactional queries. Anything in Redis must be
+reconstructible — it is not a source of truth.
+
+## Choosing between approved backends
+
+The set is broad on purpose, which makes the selection criteria the part that matters.
+
+| Workload | Choose |
+| --- | --- |
+| Modules, auth surface, several bounded areas | NestJS |
+| Python, ML, model orchestration, Pydantic-heavy | FastAPI |
+| High concurrency, streaming, throughput-bound | Go |
+| One endpoint deep, no auth surface | Express or Fastify |
+
+State which you are using and why at project start, and record it in `docs/decisions/`. Never mix
+two backend frameworks inside one service.
+
+## Anything not listed
+
+Adding a framework, ORM, database, state manager, or major library that is not above is a
+decision, not a step:
+
+1. Name it.
+2. Say what it replaces, and why the approved option does not fit.
+3. Give the cost — operational surface, what it locks in.
+4. **STOP and wait for a yes.** Do not install it first.
+
+This extends the dependency rule in `20`. A transitive dependency of an approved tool is fine; a
+new top-level choice is not.
+
+## Existing code is exempt
+
+Projects already built on something else stay as they are. Never migrate a project to this stack
+on your own initiative, and never fold a migration into unrelated work. Say it once as a
+suggestion and leave it.
+
+# Project structure and documentation
+
+## Structure
+
+Repos follow the standard layout: `AGENTS.md` at the root as the entry point, `CLAUDE.md` as a
+bridge to it, `.agent/` for agent-facing context, `docs/` for documentation, `src/` split by tier,
+`tests/`. The full tree and templates are in the `idn-project-scaffold` skill.
+
+If a repo does not follow this, say so rather than inventing a third structure. Do not restructure
+an existing repo as a side effect of other work — that is a change to propose, not to perform.
+
+## Keep documentation current, in the same change
+
+When work alters any of the following, update the document **in the same commit as the code** —
+not as a follow-up, not in a later cleanup:
+
+| The work changes | Update |
+| --- | --- |
+| services, boundaries, or data flow | `docs/architecture.md` |
+| an architectural choice | a new ADR in `docs/decisions/` |
+| business rules or domain vocabulary | `docs/domain.md` |
+| entity ownership, derivation, or lifecycle | `docs/data-model.md` |
+| auth mechanism, threat model, data classification | `docs/security.md` |
+| roles or permissions | `docs/permissions.md` |
+| how to run, deploy, back up, or restore | `docs/operations.md` |
+| a discovered limitation or accepted debt | `docs/known-issues.md` |
+| this project's testing approach | `docs/testing-strategy.md` |
+| this project's API conventions | `docs/api-design.md` |
+
+Routine bug fixes, internal refactors, and anything with no observable change do not trigger a
+documentation update. Do not write filler to satisfy the rule.
+
+If a document should change but you cannot write it accurately, say which one and why, rather
+than guessing or leaving it silently stale.
+
+## Generated documentation
+
+`docs/generated/` holds the API reference and the database schema, produced from source. **Never
+hand-edit it.** A stale hand-written schema is worse than no schema, because an agent reads it and
+confidently writes wrong code. If generation is not wired up yet, record that in
+`docs/known-issues.md` rather than writing those files by hand.
+
+## Decisions
+
+Record architectural choices as numbered ADRs in `docs/decisions/` — context, decision,
+alternatives rejected, consequences. The rejected alternatives are the part with lasting value: a
+decision without them reads as arbitrary later, and someone re-opens it. ADRs do not go stale —
+a superseded decision is still a true record. Supersede, never rewrite.
+
 # Precedence and book skills
 
 ## Precedence, highest first
