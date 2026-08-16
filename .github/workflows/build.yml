@@ -34,7 +34,7 @@ jobs:
       - name: shellcheck
         run: |
           sudo apt-get update -qq && sudo apt-get install -y shellcheck
-          shellcheck -s sh bin/airules lib/common.sh scripts/sync-vendor.sh
+          shellcheck -x -s sh bin/airules lib/common.sh scripts/sync-vendor.sh
 
       - name: Smoke test — clean HOME, install then uninstall
         run: |

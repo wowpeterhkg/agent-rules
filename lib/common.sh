@@ -13,7 +13,7 @@ have() { command -v "$1" >/dev/null 2>&1; }
 abspath() {
   _ap_d=$(dirname -- "$1")
   _ap_b=$(basename -- "$1")
-  ( CDPATH= cd -- "$_ap_d" 2>/dev/null && printf '%s/%s\n' "$(pwd -P)" "$_ap_b" )
+  ( CDPATH='' cd -- "$_ap_d" 2>/dev/null && printf '%s/%s\n' "$(pwd -P)" "$_ap_b" )
 }
 
 state_file() { printf '%s/state.json\n' "$AIRULES_STATE"; }

@@ -13,7 +13,7 @@ set -eu
 AIRULES_SELF=$0
 case $AIRULES_SELF in
   /*) ;;
-  *) AIRULES_SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)/$(basename -- "$0") ;;
+  *) AIRULES_SELF=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)/$(basename -- "$0") ;;
 esac
 # Resolve one symlink level so ~/.local/bin/airules finds its own lib/.
 if [ -L "$AIRULES_SELF" ]; then
@@ -23,7 +23,7 @@ if [ -L "$AIRULES_SELF" ]; then
     *) AIRULES_SELF=$(dirname -- "$AIRULES_SELF")/$_t ;;
   esac
 fi
-AIRULES_HOME=$(CDPATH= cd -- "$(dirname -- "$AIRULES_SELF")/.." && pwd -P)
+AIRULES_HOME=$(CDPATH='' cd -- "$(dirname -- "$AIRULES_SELF")/.." && pwd -P)
 
 AIRULES_REPO=${AIRULES_REPO:-$AIRULES_HOME}
 AIRULES_STATE=${AIRULES_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/airules}
@@ -35,6 +35,7 @@ CLAUDE_DIR=$HOME/.claude
 CODEX_DIR=$HOME/.codex
 AGENTS_SKILLS=$HOME/.agents/skills
 
+# shellcheck source-path=SCRIPTDIR
 # shellcheck source=../lib/common.sh
 . "$AIRULES_HOME/lib/common.sh"
 
@@ -61,7 +62,7 @@ require_dist() {
 }
 
 repo_version() {
-  [ -f "$AIRULES_REPO/VERSION" ] && cat "$AIRULES_REPO/VERSION" || echo unknown
+  if [ -f "$AIRULES_REPO/VERSION" ]; then cat "$AIRULES_REPO/VERSION"; else echo unknown; fi
 }
 
 # ------------------------------------------------------------------- install
@@ -82,7 +83,7 @@ install_artifacts() {
   mkdir -p "$AIRULES_STATE"
   {
     printf '%s\n' "<!-- airules $(repo_version) — managed. Edit src/ in the rules repo, not here. -->"
-    cat "$DIST/claude/CLAUDE.md" 2>/dev/null | grep -v '^<!-- GENERATED'
+    grep -v '^<!-- GENERATED' "$DIST/claude/CLAUDE.md" 2>/dev/null || true
   } > "$_tmp"
   managed_block_insert "$CLAUDE_DIR/CLAUDE.md" "$_tmp"
   state_record block "$CLAUDE_DIR/CLAUDE.md"
@@ -104,15 +105,36 @@ install_artifacts() {
     mkdir -p "$CODEX_DIR"
     _rendered=$AIRULES_STATE/codex-AGENTS.md
     sed "s|@AIRULES_PREFIX@|$AIRULES_REPO|g" "$DIST/codex/AGENTS.md" > "$_rendered"
-    AIRULES_LINK_MODE=copy link_managed "$_rendered" "$CODEX_DIR/AGENTS.md"
-    python3 "$LIB/patch_codex_config.py" "$CODEX_DIR/config.toml" install \
-      && state_record block "$CODEX_DIR/config.toml" \
-      || warn "could not patch $CODEX_DIR/config.toml"
+    AIRULES_LINK_MODE='copy' link_managed "$_rendered" "$CODEX_DIR/AGENTS.md"
+    if python3 "$LIB/patch_codex_config.py" "$CODEX_DIR/config.toml" install; then
+      state_record block "$CODEX_DIR/config.toml"
+    else
+      warn "could not patch $CODEX_DIR/config.toml"
+    fi
   fi
 
-  # 5. The CLI on PATH.
+  # 5. Seed the auto-init owner list from the signed-in GitHub account, once.
+  #    Without it the "offer to scaffold this repo" prompt stays silent.
+  _owners_file=${XDG_CONFIG_HOME:-$HOME/.config}/airules/owners
+  if [ ! -e "$_owners_file" ]; then
+    mkdir -p "$(dirname -- "$_owners_file")"
+    {
+      printf '# Repos whose git remote belongs to one of these owners may be offered\n'
+      # shellcheck disable=SC2016  # literal backticks in a comment, not an expansion
+      printf '# `airules init` when they have no AGENTS.md. One owner per line.\n'
+      printf '# Everything else is ignored, so your conventions stay out of other\n'
+      printf '# people'"'"'s repositories. Empty file = feature disabled.\n'
+      if have gh; then
+        gh api user --jq .login 2>/dev/null || true
+        gh api user/orgs --jq '.[].login' 2>/dev/null || true
+      fi
+    } > "$_owners_file"
+    state_record file "$_owners_file"
+  fi
+
+  # 6. The CLI on PATH.
   mkdir -p "$(dirname -- "$AIRULES_BIN_LINK")"
-  AIRULES_LINK_MODE=link link_managed "$AIRULES_HOME/bin/airules" "$AIRULES_BIN_LINK"
+  AIRULES_LINK_MODE='link' link_managed "$AIRULES_HOME/bin/airules" "$AIRULES_BIN_LINK"
 
   state_set version "$(repo_version)" repo "$AIRULES_REPO" mode copy
 }
@@ -204,7 +226,12 @@ cmd_install() {
   log "installed agent-rules $(repo_version)"
   case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
-    *) log ""; log "add this to your shell profile so the desktop apps can find airules:"; log '  export PATH="$HOME/.local/bin:$PATH"' ;;
+    *)
+      log ""
+      log "add this to your shell profile so the desktop apps can find airules:"
+      # shellcheck disable=SC2016  # printed verbatim for the user to paste
+      log '  export PATH="$HOME/.local/bin:$PATH"'
+      ;;
   esac
   log ""
   log "start a new session (or /clear) to load the rules."
@@ -283,11 +310,15 @@ project_needs_init() {
   [ -e "$_pn_root/AGENTS.md" ] && return 1
   _pn_remote=$(git -C "$_pn_root" remote get-url origin 2>/dev/null) || return 1
 
+  # Owners are configuration, not code. Empty by default: with no configured owner
+  # this feature stays silent rather than prompting in repos that are not yours.
   _pn_owners_file=${XDG_CONFIG_HOME:-$HOME/.config}/airules/owners
-  if [ -r "$_pn_owners_file" ]; then
+  if [ -n "${AIRULES_OWNERS:-}" ]; then
+    _pn_owners=$AIRULES_OWNERS
+  elif [ -r "$_pn_owners_file" ]; then
     _pn_owners=$(grep -v '^[[:space:]]*#' "$_pn_owners_file" | tr '\n' ' ')
   else
-    _pn_owners=${AIRULES_OWNERS:-wowpeter-idnerd idnerdidx wowpeterhkg}
+    return 1
   fi
 
   for _pn_o in $_pn_owners; do
@@ -374,7 +405,7 @@ cmd_status() {
   n_sk=$(find "$CLAUDE_DIR/skills" -maxdepth 1 \( -name 'book-*' -o -name 'idn-*' \) 2>/dev/null | wc -l | tr -d ' ')
   n_ag=$(find "$AGENTS_SKILLS" -maxdepth 1 \( -name 'book-*' -o -name 'idn-*' \) 2>/dev/null | wc -l | tr -d ' ')
   n_foreign=$(find "$AGENTS_SKILLS" -maxdepth 1 -mindepth 1 ! -name 'book-*' ! -name 'idn-*' 2>/dev/null | wc -l | tr -d ' ')
-  log "claude    rules/ $n_rules   skills/ $n_sk   memory block $([ -f "$CLAUDE_DIR/CLAUDE.md" ] && echo present || echo MISSING)"
+  log "claude    rules/ $n_rules   skills/ $n_sk   memory block $(if [ -f "$CLAUDE_DIR/CLAUDE.md" ]; then echo present; else echo MISSING; fi)"
   if [ -f "$CODEX_DIR/AGENTS.md" ]; then
     log "codex     AGENTS.md $(wc -c < "$CODEX_DIR/AGENTS.md" | tr -d ' ') B   skills $n_ag"
   else
@@ -500,9 +531,11 @@ cmd_uninstall() {
   state_owned_paths | while read -r p; do
     [ -n "$p" ] || continue
     case $p in
-      "$CLAUDE_DIR/settings.json") have python3 && python3 "$LIB/merge_settings.py" "$p" x uninstall || true ;;
+      "$CLAUDE_DIR/settings.json")
+        if have python3; then python3 "$LIB/merge_settings.py" "$p" x uninstall || true; fi ;;
       "$CLAUDE_DIR/CLAUDE.md") managed_block_remove "$p" ;;
-      "$CODEX_DIR/config.toml") have python3 && python3 "$LIB/patch_codex_config.py" "$p" uninstall || true ;;
+      "$CODEX_DIR/config.toml")
+        if have python3; then python3 "$LIB/patch_codex_config.py" "$p" uninstall || true; fi ;;
       crontab:*) crontab -l 2>/dev/null | grep -v 'airules update' | crontab - || true ;;
       *.plist) launchctl unload "$p" 2>/dev/null || true; rm -f -- "$p" ;;
       *) rm -rf -- "$p" ;;
@@ -515,7 +548,7 @@ cmd_uninstall() {
 # --------------------------------------------------------------------- main
 
 cmd=${1:-}
-[ $# -gt 0 ] && shift || true
+if [ $# -gt 0 ]; then shift; fi
 case $cmd in
   install)   cmd_install "$@" ;;
   update)    cmd_update "$@" ;;
