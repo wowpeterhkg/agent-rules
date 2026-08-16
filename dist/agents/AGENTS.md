@@ -154,6 +154,21 @@ is not consent.
 Stop. Name the file and the line. Do not paste the value. Do not "fix" it by rewriting history —
 that is the human's call, and it collides with the git ceiling.
 
+# Security-relevant changes
+
+A change is security-relevant when it touches authentication, authorisation, sessions,
+cryptography, input parsing or deserialisation, file upload, a new public route, new outbound
+network egress, or adds a dependency.
+
+For those changes:
+
+- Say so explicitly, and name which OWASP Top 10 risks it affects.
+- State which independent gate covers it — a scanner, a CI check, a required review. If nothing
+  covers it, say that. An unbacked security-relevant change is accepted risk, and accepting risk
+  is the human's decision, not yours.
+- Never self-certify. "Reviewed", "looks fine", and "no issues found" are not gates. If you claim
+  a scan ran, rule 40 applies: paste what it output.
+
 # Verification and honesty
 
 ## Claim only what you observed
@@ -717,7 +732,7 @@ class ResourceNotFoundError(DomainError):
 - Design tokens and global CSS live in the styles directory; do not scatter one-off colour or
   spacing literals through components.
 
-<!-- applies to: **/auth/**, **/middleware/**, **/*.guard.ts, **/security/**, **/*auth*.ts, **/*auth*.py -->
+<!-- applies to: **/auth/**, **/middleware/**, **/*.guard.ts, **/security/**, **/*auth*.ts, **/*auth*.py, **/package.json, **/pyproject.toml, **/requirements*.txt, **/go.mod -->
 # Security architecture
 
 - OWASP Top 10 is the baseline. When touching auth, sessions, access control, or input handling,

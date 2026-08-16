@@ -1,16 +1,16 @@
 {
   "artifacts": {
     "agents/AGENTS.md": {
-      "bytes": 39224,
-      "sha256": "0bd9830ffa651a9ed140e8e7581a4bcbc90cbb3a29a6fc07937a561d6d8f5f8f"
+      "bytes": 40014,
+      "sha256": "ec753c02161b606378a6451d29379e3d517aba3e1e731cd128c1b706f42e267e"
     },
     "claude/CLAUDE.md": {
       "bytes": 341,
       "sha256": "d2468b74a5d1825525d1297f7d3354922ae681bf601c193d5bd36e4faf01bcc0"
     },
     "claude/rules/airules-00-core.md": {
-      "bytes": 22119,
-      "sha256": "6adedab23e41387c5cd10972388015bddd0fd96674aff033f45b2540e86ea2d6"
+      "bytes": 22840,
+      "sha256": "fd021252561b4b322f168f8255b4f5e81966422f41dec6b26ee6ece002da76fe"
     },
     "claude/rules/airules-ai-data-schema.md": {
       "bytes": 5090,
@@ -41,8 +41,8 @@
       "sha256": "81ccda7a3a7d273a76afe9b7642033b09bf68718f0567f19d4ff64189a5977f6"
     },
     "claude/rules/airules-security-architecture.md": {
-      "bytes": 1121,
-      "sha256": "a860575cad0ad5d9a984e1cdfd84dec2d6f53c90fe6e432fd9a667f682d9a7ca"
+      "bytes": 1210,
+      "sha256": "ca60cb67769efc2a2e0a7b7567536fa2adab504745aef69a1cdc04ebb32cad31"
     },
     "claude/rules/airules-tests.md": {
       "bytes": 1127,
@@ -53,8 +53,8 @@
       "sha256": "a00c5db02bb8a5decdf660155a0f351c07cce4ccced0dc87ccc0d343c8b5f829"
     },
     "codex/AGENTS.md": {
-      "bytes": 17987,
-      "sha256": "94d9e3ab0505de351a60d7df1a193128608572f70b051e868440621ec75ab943"
+      "bytes": 18275,
+      "sha256": "d2813baaae6180d3c440a855ae03addb9a9d4060178ee0cc82a65e20180fb17a"
     },
     "skills/book-clean-architecture/SKILL.md": {
       "bytes": 6777,
@@ -196,17 +196,17 @@
   "budgets": [
     {
       "budget": 24576,
-      "bytes": 22119,
+      "bytes": 22840,
       "file": "dist/claude/rules/airules-00-core.md"
     },
     {
       "budget": 18432,
-      "bytes": 17987,
+      "bytes": 18275,
       "file": "dist/codex/AGENTS.md"
     }
   ],
   "prefix_token": "@AIRULES_PREFIX@",
-  "scoped_bytes": 18262,
+  "scoped_bytes": 18351,
   "skills": [
     "book-clean-architecture",
     "book-code-construction",

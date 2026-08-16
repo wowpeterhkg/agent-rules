@@ -6,6 +6,10 @@ paths:
   - "**/security/**"
   - "**/*auth*.ts"
   - "**/*auth*.py"
+  - "**/package.json"
+  - "**/pyproject.toml"
+  - "**/requirements*.txt"
+  - "**/go.mod"
 ---
 
 # Security architecture
