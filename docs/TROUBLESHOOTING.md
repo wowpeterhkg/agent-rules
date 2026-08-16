@@ -7,6 +7,24 @@ open a new terminal session. A full app restart works but is heavier than needed
 
 Then: `airules doctor`.
 
+## Stack rules do not apply to files outside the working directory
+
+Path-scoped rules (`airules-*.md` with a `paths:` block) are matched against the **working
+directory**. A file read from a scratch directory, a sibling repo, or an absolute path outside the
+cwd matches nothing — only `airules-00-core.md` applies, because it has no `paths:` block.
+
+Verified 2026-08-16 on Claude Code desktop by sealed-token probe: an identical `.sql` file pulled
+`airules-persistence.md` + `airules-ai-data-schema.md` when read from inside the cwd, and nothing
+at all from outside it. The probe also confirmed `**/` matches zero directories, so a root-level
+`Dockerfile` does get `airules-containers.md`.
+
+Consequence: cross-repo and scratch-directory work runs on core rules alone. The safety
+constraints still hold; the language, stack, and container rules do not. Read the relevant
+`airules-*.md` explicitly if it matters.
+
+Untested: whether Edit, Write, or Grep trigger injection the way Read does, and whether Codex
+scopes the same way.
+
 ## Claude: skills or rules missing after an update
 
 Claude Code's auto-updater has been observed removing user symlinks from `~/.claude/skills/`.
