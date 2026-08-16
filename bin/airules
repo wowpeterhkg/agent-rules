@@ -274,6 +274,32 @@ cmd_refresh() {
 
 # ---------------------------------------------------------------------- hook
 
+# Print the repo root when the session's repo is one of ours AND has no AGENTS.md.
+# Scoped by remote owner so house conventions can never be scaffolded into someone
+# else's checkout. Override the list in ~/.config/airules/owners, one per line.
+project_needs_init() {
+  _pn_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 1
+  [ -n "$_pn_root" ] || return 1
+  [ -e "$_pn_root/AGENTS.md" ] && return 1
+  _pn_remote=$(git -C "$_pn_root" remote get-url origin 2>/dev/null) || return 1
+
+  _pn_owners_file=${XDG_CONFIG_HOME:-$HOME/.config}/airules/owners
+  if [ -r "$_pn_owners_file" ]; then
+    _pn_owners=$(grep -v '^[[:space:]]*#' "$_pn_owners_file" | tr '\n' ' ')
+  else
+    _pn_owners=${AIRULES_OWNERS:-wowpeter-idnerd idnerdidx wowpeterhkg}
+  fi
+
+  for _pn_o in $_pn_owners; do
+    [ -n "$_pn_o" ] || continue
+    case $_pn_remote in
+      *"github.com/$_pn_o/"*|*"github.com:$_pn_o/"*)
+        printf '%s\n' "$_pn_root"; return 0 ;;
+    esac
+  done
+  return 1
+}
+
 cmd_hook() {
   event=startup
   while [ $# -gt 0 ]; do
@@ -292,6 +318,13 @@ cmd_hook() {
   now=$(date -u +%s)
   if [ "$(( now - ${last:-0} ))" -ge "$AIRULES_TTL" ] 2>/dev/null; then
     ( "$AIRULES_SELF" _refresh >/dev/null 2>&1 </dev/null & ) >/dev/null 2>&1
+  fi
+
+  if needs_init_root=$(project_needs_init); then
+    out="${out}
+[airules] This repository has no AGENTS.md, so it has no project-level agent instructions.
+Before making any substantive change here, offer to run \`airules init\` in $needs_init_root.
+Do not run it unasked, and do not offer it for read-only or exploratory work."
   fi
 
   if [ -n "$notice" ]; then

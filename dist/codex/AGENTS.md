@@ -190,7 +190,8 @@ rewrite touches, and why it can't be surgical. "It would be cleaner" is not evid
 
 **Before coding.** State assumptions. Present multiple readings rather than picking silently.
 Say when a simpler approach exists. Stop and name what is unclear. Turn tasks into verifiable
-goals with a check per step.
+goals with a check per step. If the repo has no `AGENTS.md` and the work is substantive, offer
+once to run `airules init` — offer, never run it unasked.
 
 **Simplicity.** Minimum code. No unrequested features, abstractions, configurability, or error
 handling for impossible scenarios.

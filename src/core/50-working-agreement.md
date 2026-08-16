@@ -23,7 +23,8 @@ digest: |
 
   **Before coding.** State assumptions. Present multiple readings rather than picking silently.
   Say when a simpler approach exists. Stop and name what is unclear. Turn tasks into verifiable
-  goals with a check per step.
+  goals with a check per step. If the repo has no `AGENTS.md` and the work is substantive, offer
+  once to run `airules init` — offer, never run it unasked.
 
   **Simplicity.** Minimum code. No unrequested features, abstractions, configurability, or error
   handling for impossible scenarios.
@@ -86,6 +87,8 @@ hide, or a third patch to the same area is.
 - If something is unclear, stop and name what is confusing.
 - Turn the task into a verifiable goal: "fix the bug" becomes "write a test that reproduces it,
   then make it pass". For multi-step work, give a short numbered plan with a check per step.
+- If the repo has no `AGENTS.md` and the work is substantive, offer once to run `airules init`
+  to scaffold it. Offer — never run it unasked, and never for read-only or exploratory work.
 
 ## Simplicity
 

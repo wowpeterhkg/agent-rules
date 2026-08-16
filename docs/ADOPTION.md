@@ -45,3 +45,12 @@ airules init
 ```
 
 Creates `AGENTS.md`, a `CLAUDE.md` bridge, and `.agent/`. Review and commit them.
+
+## Unscaffolded repos
+
+If you open one of your own repos that has no `AGENTS.md`, the agent is told so at session start
+and will offer to run `airules init` before making substantive changes. It never runs unasked,
+and never fires in repos owned by anyone else.
+
+The owner list defaults to `wowpeter-idnerd idnerdidx wowpeterhkg`. Override it in
+`~/.config/airules/owners`, one owner per line.

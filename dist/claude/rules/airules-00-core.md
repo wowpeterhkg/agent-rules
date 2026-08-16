@@ -242,6 +242,8 @@ hide, or a third patch to the same area is.
 - If something is unclear, stop and name what is confusing.
 - Turn the task into a verifiable goal: "fix the bug" becomes "write a test that reproduces it,
   then make it pass". For multi-step work, give a short numbered plan with a check per step.
+- If the repo has no `AGENTS.md` and the work is substantive, offer once to run `airules init`
+  to scaffold it. Offer — never run it unasked, and never for read-only or exploratory work.
 
 ## Simplicity
 

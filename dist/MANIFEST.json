@@ -1,16 +1,16 @@
 {
   "artifacts": {
     "agents/AGENTS.md": {
-      "bytes": 23155,
-      "sha256": "a941dec4c06fb093dc428f93c139fa7c8050f7eca90c2ebf211762d556473cc6"
+      "bytes": 23345,
+      "sha256": "d8612ccf4cedaba1c50bfc426e65e30a5ae25ce5d38d7802ad28ea362dfd7ea6"
     },
     "claude/CLAUDE.md": {
       "bytes": 341,
       "sha256": "d2468b74a5d1825525d1297f7d3354922ae681bf601c193d5bd36e4faf01bcc0"
     },
     "claude/rules/airules-00-core.md": {
-      "bytes": 13348,
-      "sha256": "628de1b78f5db6781520d037226f2a833c5c0b91ca1bf73e0b783e50bb5d5d0d"
+      "bytes": 13538,
+      "sha256": "1f712d64c41ab37798e9677019fb8555092f7e7081f0ac4f0d32b1d02413b158"
     },
     "claude/rules/airules-backend-api.md": {
       "bytes": 1811,
@@ -49,8 +49,8 @@
       "sha256": "a00c5db02bb8a5decdf660155a0f351c07cce4ccced0dc87ccc0d343c8b5f829"
     },
     "codex/AGENTS.md": {
-      "bytes": 13134,
-      "sha256": "adad0196839a6152d3892838f047d870e25115210e77357252f91f9b30853260"
+      "bytes": 13260,
+      "sha256": "52fb781a63988f2454651c1881c2bc7bf24fe109280c981c3f54eb81e442db18"
     },
     "skills/book-clean-architecture/SKILL.md": {
       "bytes": 6777,
@@ -140,12 +140,12 @@
   "budgets": [
     {
       "budget": 16384,
-      "bytes": 13348,
+      "bytes": 13538,
       "file": "dist/claude/rules/airules-00-core.md"
     },
     {
       "budget": 14336,
-      "bytes": 13134,
+      "bytes": 13260,
       "file": "dist/codex/AGENTS.md"
     }
   ],
