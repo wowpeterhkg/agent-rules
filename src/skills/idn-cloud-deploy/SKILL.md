@@ -5,6 +5,12 @@ description: Standard procedure for deploying a project to a fresh cloud VM (Dig
 
 # Cloud deployment — standard procedure
 
+> **House-specific.** This encodes one team's infrastructure conventions — app directories at
+> `/opt/<name>`, one private Docker Hub repo with per-workload tag suffixes, config delivered by
+> `scp` instead of a git clone on the server. If you installed this repo without forking it,
+> treat this skill as an example of the *shape* a deployment runbook should take, and replace it
+> with your own. See `docs/CUSTOMIZING.md`.
+
 This is the same sequence for every project. Do not invent variations. Document it in the
 project's `docs/CLOUD-DEPLOYMENT-GUIDE.md` using this structure.
 
