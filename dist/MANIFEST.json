@@ -65,12 +65,16 @@
       "sha256": "1f0366be1720989c63df6da8f15f12e78f8786f6e712eeb16cf3690b4dab6cc4"
     },
     "skills/book-code-construction/SKILL.md": {
-      "bytes": 7998,
-      "sha256": "f76c0a5f33af0328bfba1e36483c83a58d67cd521c2486f0c60946237b19037b"
+      "bytes": 8058,
+      "sha256": "df7de975111cbbd5f876c025f2304b1fb0320bd792332a96f535b2da11feb9d2"
     },
     "skills/book-code-construction/clean-code.md": {
-      "bytes": 3804,
-      "sha256": "a2cd7e30a03376037e441056a5615e7a15c396642daf16f7875a0f5139b65e67"
+      "bytes": 13851,
+      "sha256": "0ec945c383144e2eeb52bdd18cc87668bff73c13421e17cc6e4ba3fc5905965e"
+    },
+    "skills/book-code-construction/reference.md": {
+      "bytes": 12407,
+      "sha256": "57ca8fab93baea0761eeeca6c491fe79b093df47feb4172c0917a96f8ddc95a4"
     },
     "skills/book-data-intensive/SKILL.md": {
       "bytes": 8227,

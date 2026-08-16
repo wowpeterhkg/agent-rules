@@ -321,7 +321,7 @@ BOOK_SKILLS = {
         "title": "Code construction",
         "body": "code-complete",
         "attrib": "Code Complete by Steve McConnell",
-        "refs": {"clean-code.md": "clean-code"},
+        "refs": {"reference.md": "code-complete:full", "clean-code.md": "clean-code:full"},
         "conflicts": [("any more specific book-* skill", "This one loses. It is the fallback when nothing else matches.")],
     },
 }
