@@ -1,0 +1,167 @@
+{
+  "artifacts": {
+    "agents/AGENTS.md": {
+      "bytes": 23155,
+      "sha256": "a941dec4c06fb093dc428f93c139fa7c8050f7eca90c2ebf211762d556473cc6"
+    },
+    "claude/CLAUDE.md": {
+      "bytes": 341,
+      "sha256": "d2468b74a5d1825525d1297f7d3354922ae681bf601c193d5bd36e4faf01bcc0"
+    },
+    "claude/rules/airules-00-core.md": {
+      "bytes": 13348,
+      "sha256": "628de1b78f5db6781520d037226f2a833c5c0b91ca1bf73e0b783e50bb5d5d0d"
+    },
+    "claude/rules/airules-backend-api.md": {
+      "bytes": 1811,
+      "sha256": "56e9ad9c796a58823603319ac87fd26ee2e2b4e16d057894d12b212ebc3ad74c"
+    },
+    "claude/rules/airules-ci-workflows.md": {
+      "bytes": 815,
+      "sha256": "4b61052345bfa1ef6895d8c86744bfad7dc4c661151724a5d1ebdf96197b47eb"
+    },
+    "claude/rules/airules-containers.md": {
+      "bytes": 1245,
+      "sha256": "19aa18760a210b0e4fd1c5f7e42f67c23a4cd5e01440ad588f47cc4555265641"
+    },
+    "claude/rules/airules-persistence.md": {
+      "bytes": 1279,
+      "sha256": "3ca9918db233de5769bc0f78f128a8e7ca87234332cec437c229a8200ca09aec"
+    },
+    "claude/rules/airules-python.md": {
+      "bytes": 1341,
+      "sha256": "46dd2b9bb6913a18f3920b0b22a8f0a406e1eb7fb8c72d6c5fcf9c7b7664eb5c"
+    },
+    "claude/rules/airules-react.md": {
+      "bytes": 1051,
+      "sha256": "81ccda7a3a7d273a76afe9b7642033b09bf68718f0567f19d4ff64189a5977f6"
+    },
+    "claude/rules/airules-security-architecture.md": {
+      "bytes": 1121,
+      "sha256": "a860575cad0ad5d9a984e1cdfd84dec2d6f53c90fe6e432fd9a667f682d9a7ca"
+    },
+    "claude/rules/airules-tests.md": {
+      "bytes": 1127,
+      "sha256": "b5434ae768cb1e02024fc656c2a4ccdb89b020d0a197c6a85182e50d3549721b"
+    },
+    "claude/rules/airules-typescript.md": {
+      "bytes": 1035,
+      "sha256": "a00c5db02bb8a5decdf660155a0f351c07cce4ccced0dc87ccc0d343c8b5f829"
+    },
+    "codex/AGENTS.md": {
+      "bytes": 13134,
+      "sha256": "adad0196839a6152d3892838f047d870e25115210e77357252f91f9b30853260"
+    },
+    "skills/book-clean-architecture/SKILL.md": {
+      "bytes": 6777,
+      "sha256": "dc47aba0380c9e11327cbe42d7b77b7df7c5a59a6ba7ce15cad831973f12e854"
+    },
+    "skills/book-clean-architecture/reference.md": {
+      "bytes": 17782,
+      "sha256": "1f0366be1720989c63df6da8f15f12e78f8786f6e712eeb16cf3690b4dab6cc4"
+    },
+    "skills/book-code-construction/SKILL.md": {
+      "bytes": 7998,
+      "sha256": "f76c0a5f33af0328bfba1e36483c83a58d67cd521c2486f0c60946237b19037b"
+    },
+    "skills/book-code-construction/clean-code.md": {
+      "bytes": 3804,
+      "sha256": "a2cd7e30a03376037e441056a5615e7a15c396642daf16f7875a0f5139b65e67"
+    },
+    "skills/book-data-intensive/SKILL.md": {
+      "bytes": 8227,
+      "sha256": "e256ef848a8ae6206a0b7bc0dffd4dc68c7e3e552853e2b0d53c4abdd3713ccd"
+    },
+    "skills/book-data-intensive/reference.md": {
+      "bytes": 16084,
+      "sha256": "8c1bfe1529076fda8f828ed6939b63bc3016830ad3c705071699a250e98b8f25"
+    },
+    "skills/book-domain-driven-design/SKILL.md": {
+      "bytes": 7915,
+      "sha256": "610aff314d6e451a9d04eb80d8ee2f2ab61208558555010b87dfdd6b99fe405b"
+    },
+    "skills/book-domain-driven-design/strategic.md": {
+      "bytes": 42424,
+      "sha256": "de806ceb828df4408e452361ab587d81f213443ad057017b1f6bed2334d5aaa6"
+    },
+    "skills/book-domain-driven-design/tactical.md": {
+      "bytes": 12848,
+      "sha256": "cd2c1d404f60720cebca17fcffed9d68d94b1eef4a13bed63a4f59f01db005ad"
+    },
+    "skills/book-enterprise-patterns/SKILL.md": {
+      "bytes": 9369,
+      "sha256": "894ee8a918de69b0315c894f75d5bef19df39c78ba2ac6673ed2d16779e4f4f9"
+    },
+    "skills/book-enterprise-patterns/reference.md": {
+      "bytes": 15501,
+      "sha256": "e7f30e7d65005924ec29cc0c6f032aedd0b1bffa22223d5386c5a3140cd76af0"
+    },
+    "skills/book-legacy-code/SKILL.md": {
+      "bytes": 6962,
+      "sha256": "bdfe134b7c1d7095f740c41382539a65f30cadc2bc4fa539a3093da466f53954"
+    },
+    "skills/book-legacy-code/reference.md": {
+      "bytes": 13817,
+      "sha256": "8b22bfc3d2851509d4cd8e05fbb9aca9e934f4b6915cb65fe8d6d9d241393fce"
+    },
+    "skills/book-pragmatic-programmer/SKILL.md": {
+      "bytes": 8424,
+      "sha256": "c1e593f03aaf52c0048cf09270f635a0389dfd1632c401a0d486f12991f13e8c"
+    },
+    "skills/book-pragmatic-programmer/reference.md": {
+      "bytes": 13398,
+      "sha256": "ea10063caff1989c1442c2aff501a942281fb5b06456e822ab856c701fc5e28d"
+    },
+    "skills/book-production-reliability/SKILL.md": {
+      "bytes": 7638,
+      "sha256": "5a422e777d44d8fd19b0c2790ba3ec350c45dbcb62ba2ad0a3b28f3e9a388a54"
+    },
+    "skills/book-production-reliability/reference.md": {
+      "bytes": 13542,
+      "sha256": "ac72b846e9584f376090c8508b2bc66f557ea8d14195ea3b20e15a66b27c4aec"
+    },
+    "skills/book-refactoring/SKILL.md": {
+      "bytes": 6726,
+      "sha256": "1d94f9f528b89b3253203274bc5e1645ede2228231404975d34cd145236eef9e"
+    },
+    "skills/book-refactoring/catalog.md": {
+      "bytes": 6287,
+      "sha256": "c7c752b794400cbc0527c5a721c323531dfe3c0e963ab95f7c92c51603006054"
+    },
+    "skills/book-refactoring/reference.md": {
+      "bytes": 17866,
+      "sha256": "d7b9cf2b5ca26f3576943ff59cdeee61b65138213777b0e03bfe1075cbd966fc"
+    },
+    "skills/idn-cloud-deploy/SKILL.md": {
+      "bytes": 6172,
+      "sha256": "e4a4fa2ccd21181fd7dbcfd8b1e13a96172ab22659dce3f934ad099a442a3149"
+    }
+  },
+  "budgets": [
+    {
+      "budget": 16384,
+      "bytes": 13348,
+      "file": "dist/claude/rules/airules-00-core.md"
+    },
+    {
+      "budget": 14336,
+      "bytes": 13134,
+      "file": "dist/codex/AGENTS.md"
+    }
+  ],
+  "prefix_token": "@AIRULES_PREFIX@",
+  "scoped_bytes": 10825,
+  "skills": [
+    "book-clean-architecture",
+    "book-code-construction",
+    "book-data-intensive",
+    "book-domain-driven-design",
+    "book-enterprise-patterns",
+    "book-legacy-code",
+    "book-pragmatic-programmer",
+    "book-production-reliability",
+    "book-refactoring",
+    "idn-cloud-deploy"
+  ],
+  "version": "2026.08.16+1"
+}

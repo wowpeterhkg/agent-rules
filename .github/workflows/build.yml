@@ -1,0 +1,75 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build (byte budgets, secret scan, frontmatter lint)
+        run: python3 build.py
+
+      - name: Fail if dist/ is stale
+        run: |
+          if ! git diff --quiet -- dist/; then
+            echo "::error::dist/ is stale. Run 'python3 build.py' and commit the result."
+            git --no-pager diff --stat -- dist/
+            exit 1
+          fi
+
+      - name: Vendor lock integrity
+        run: python3 build.py --verify-vendor
+
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y shellcheck
+          shellcheck -s sh bin/airules lib/common.sh scripts/sync-vendor.sh
+
+      - name: Smoke test — clean HOME, install then uninstall
+        run: |
+          export HOME=$(mktemp -d)
+          ./bin/airules install --repo "$GITHUB_WORKSPACE" --no-schedule --yes
+          ./bin/airules status
+          ./bin/airules doctor
+          ./bin/airules uninstall --purge
+          if find "$HOME" -name 'airules-*' -print -quit | grep -q .; then
+            echo "::error::uninstall left residue"; exit 1
+          fi
+
+      - name: Smoke test — existing settings.json must survive
+        run: |
+          export HOME=$(mktemp -d); mkdir -p "$HOME/.claude"
+          printf '%s\n' '{"enabledPlugins":{"a@m":true,"b@m":true},"effortLevel":"medium"}' \
+            > "$HOME/.claude/settings.json"
+          printf 'my own notes\n' > "$HOME/.claude/CLAUDE.md"
+          ./bin/airules install --repo "$GITHUB_WORKSPACE" --no-schedule --yes
+          ./bin/airules install --repo "$GITHUB_WORKSPACE" --no-schedule --yes
+          python3 - <<'PY'
+          import json, os
+          s = json.load(open(os.environ["HOME"] + "/.claude/settings.json"))
+          assert s["enabledPlugins"] == {"a@m": True, "b@m": True}, s
+          assert s["effortLevel"] == "medium", s
+          n = sum(len(e["hooks"]) for e in s["hooks"]["SessionStart"])
+          assert n == 4, f"hooks duplicated on re-install: {n}"
+          assert all(h["command"].startswith("/")
+                     for e in s["hooks"]["SessionStart"] for h in e["hooks"]), s
+          PY
+          ./bin/airules uninstall
+          python3 - <<'PY'
+          import json, os
+          s = json.load(open(os.environ["HOME"] + "/.claude/settings.json"))
+          assert s["enabledPlugins"] == {"a@m": True, "b@m": True}, s
+          assert not s.get("hooks", {}).get("SessionStart"), s
+          assert "my own notes" in open(os.environ["HOME"] + "/.claude/CLAUDE.md").read()
+          PY

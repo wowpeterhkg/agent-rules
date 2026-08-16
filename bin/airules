@@ -1,0 +1,499 @@
+#!/bin/sh
+# airules — install and update global AI coding rules for Claude Code and Codex.
+#
+# Works across: Claude CLI, Claude Desktop (Code tab), Claude VS Code extension,
+# Codex CLI, Codex app, Codex IDE extension.
+#
+# Artifacts are COPIED, not symlinked: Claude Code has documented failures loading
+# symlinked user-level skills, and its auto-updater has been observed removing user
+# symlinks from ~/.claude/skills. Copies mean `git pull` alone is not enough, so
+# `airules update` re-copies and the background refresh runs it for you.
+set -eu
+
+AIRULES_SELF=$0
+case $AIRULES_SELF in
+  /*) ;;
+  *) AIRULES_SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)/$(basename -- "$0") ;;
+esac
+# Resolve one symlink level so ~/.local/bin/airules finds its own lib/.
+if [ -L "$AIRULES_SELF" ]; then
+  _t=$(readlink -- "$AIRULES_SELF")
+  case $_t in
+    /*) AIRULES_SELF=$_t ;;
+    *) AIRULES_SELF=$(dirname -- "$AIRULES_SELF")/$_t ;;
+  esac
+fi
+AIRULES_HOME=$(CDPATH= cd -- "$(dirname -- "$AIRULES_SELF")/.." && pwd -P)
+
+AIRULES_REPO=${AIRULES_REPO:-$AIRULES_HOME}
+AIRULES_STATE=${AIRULES_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/airules}
+AIRULES_TTL=${AIRULES_TTL:-86400}
+AIRULES_BIN_LINK=$HOME/.local/bin/airules
+BACKUP_DIR=${BACKUP_DIR:-$AIRULES_STATE/backups/$(date -u +%Y%m%dT%H%M%SZ)}
+
+CLAUDE_DIR=$HOME/.claude
+CODEX_DIR=$HOME/.codex
+AGENTS_SKILLS=$HOME/.agents/skills
+
+# shellcheck source=../lib/common.sh
+. "$AIRULES_HOME/lib/common.sh"
+
+LIB=$AIRULES_HOME/lib
+DIST=$AIRULES_REPO/dist
+
+usage() {
+  cat <<'EOF'
+airules — global AI coding rules for Claude Code and Codex
+
+  install [--repo DIR] [--no-hooks] [--no-codex] [--no-schedule] [--dry-run] [--yes]
+  update  [--check]        pull, rebuild links, report what changed
+  status  [--json]         version, drift, link health, byte budgets
+  doctor  [--fix]          diagnose; exit 0 clean / 1 warnings / 2 errors
+  init    [DIR] [--adopt]  scaffold AGENTS.md + CLAUDE.md + .agent/ in a project
+  uninstall [--purge]      reverse everything recorded in the ownership ledger
+  build                    regenerate dist/ (authors only; needs python3)
+  version
+EOF
+}
+
+require_dist() {
+  [ -f "$DIST/MANIFEST.json" ] || die "no build artifacts at $DIST — run: airules build"
+}
+
+repo_version() {
+  [ -f "$AIRULES_REPO/VERSION" ] && cat "$AIRULES_REPO/VERSION" || echo unknown
+}
+
+# ------------------------------------------------------------------- install
+
+install_artifacts() {
+  require_dist
+  state_init
+
+  # 1. Claude user rules — real files, prefixed so ownership is unambiguous.
+  for f in "$DIST"/claude/rules/*.md; do
+    [ -e "$f" ] || continue
+    link_managed "$f" "$CLAUDE_DIR/rules/$(basename -- "$f")"
+  done
+
+  # 2. Claude user memory — a managed block, never the whole file. It is the
+  #    user's own file and they will want their own notes in it.
+  _tmp=$AIRULES_STATE/claude-block.md
+  mkdir -p "$AIRULES_STATE"
+  {
+    printf '%s\n' "<!-- airules $(repo_version) — managed. Edit src/ in the rules repo, not here. -->"
+    cat "$DIST/claude/CLAUDE.md" 2>/dev/null | grep -v '^<!-- GENERATED'
+  } > "$_tmp"
+  managed_block_insert "$CLAUDE_DIR/CLAUDE.md" "$_tmp"
+  state_record block "$CLAUDE_DIR/CLAUDE.md"
+
+  # 3. Skills — into both roots. ~/.agents/skills is the only user-level skills
+  #    path Codex reads; ~/.claude/skills is Claude's. Prefixed names keep us
+  #    clear of the 26 skills already installed by the vercel skills CLI.
+  for d in "$DIST"/skills/*/; do
+    [ -d "$d" ] || continue
+    n=$(basename -- "$d")
+    link_managed "${d%/}" "$CLAUDE_DIR/skills/$n"
+    [ "${AIRULES_NO_CODEX:-0}" = 1 ] || link_managed "${d%/}" "$AGENTS_SKILLS/$n"
+  done
+
+  # 4. Codex global instructions — rendered, because pointer paths are absolute
+  #    and machine-specific. Codex has no import syntax, so these are soft
+  #    pointers the model opens on demand (its sandbox permits full-disk reads).
+  if [ "${AIRULES_NO_CODEX:-0}" != 1 ]; then
+    mkdir -p "$CODEX_DIR"
+    _rendered=$AIRULES_STATE/codex-AGENTS.md
+    sed "s|@AIRULES_PREFIX@|$AIRULES_REPO|g" "$DIST/codex/AGENTS.md" > "$_rendered"
+    AIRULES_LINK_MODE=copy link_managed "$_rendered" "$CODEX_DIR/AGENTS.md"
+    python3 "$LIB/patch_codex_config.py" "$CODEX_DIR/config.toml" install \
+      && state_record block "$CODEX_DIR/config.toml" \
+      || warn "could not patch $CODEX_DIR/config.toml"
+  fi
+
+  # 5. The CLI on PATH.
+  mkdir -p "$(dirname -- "$AIRULES_BIN_LINK")"
+  AIRULES_LINK_MODE=link link_managed "$AIRULES_HOME/bin/airules" "$AIRULES_BIN_LINK"
+
+  state_set version "$(repo_version)" repo "$AIRULES_REPO" mode copy
+}
+
+install_hooks() {
+  # Absolute path: desktop and IDE surfaces launched from the Dock recover PATH
+  # only from the shell profile, so a bare `airules` may not resolve.
+  if have python3; then
+    backup "$CLAUDE_DIR/settings.json"
+    python3 "$LIB/merge_settings.py" "$CLAUDE_DIR/settings.json" "$AIRULES_BIN_LINK" install \
+      || die "settings merge failed — restore from $BACKUP_DIR"
+    python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$CLAUDE_DIR/settings.json" \
+      || die "POST-MERGE CORRUPTION — restore from $BACKUP_DIR"
+    state_record block "$CLAUDE_DIR/settings.json"
+  else
+    warn "python3 not found — skipping hook wiring; run 'airules update' manually"
+  fi
+}
+
+install_schedule() {
+  case $(uname -s) in
+    Darwin)
+      _plist=$HOME/Library/LaunchAgents/com.airules.update.plist
+      mkdir -p "$(dirname -- "$_plist")"
+      cat > "$_plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.airules.update</string>
+  <key>ProgramArguments</key>
+  <array><string>$AIRULES_BIN_LINK</string><string>update</string></array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>$AIRULES_STATE/update.log</string>
+  <key>StandardOutPath</key><string>$AIRULES_STATE/update.log</string>
+</dict>
+</plist>
+PLIST
+      launchctl unload "$_plist" 2>/dev/null || true
+      launchctl load "$_plist" 2>/dev/null || warn "could not load launch agent"
+      state_record schedule "$_plist"
+      log "scheduled daily update at 09:00 (launchd)"
+      ;;
+    *)
+      if have crontab; then
+        _line="0 9 * * * $AIRULES_BIN_LINK update >>$AIRULES_STATE/update.log 2>&1"
+        (crontab -l 2>/dev/null | grep -v 'airules update'; printf '%s\n' "$_line") | crontab -
+        state_record schedule "crontab:airules"
+        log "scheduled daily update at 09:00 (cron)"
+      else
+        warn "no crontab found — skipping scheduled update"
+      fi
+      ;;
+  esac
+}
+
+cmd_install() {
+  DRY=0; NO_HOOKS=0; NO_SCHED=0
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --repo) AIRULES_REPO=$(abspath "$2"); DIST=$AIRULES_REPO/dist; shift 2 ;;
+      --no-hooks) NO_HOOKS=1; shift ;;
+      --no-codex) AIRULES_NO_CODEX=1; export AIRULES_NO_CODEX; shift ;;
+      --no-schedule) NO_SCHED=1; shift ;;
+      --dry-run) DRY=1; shift ;;
+      --yes|-y|--force) shift ;;
+      *) die "unknown flag: $1" ;;
+    esac
+  done
+  have git || die "git is required"
+  require_dist
+
+  if [ "$DRY" = 1 ]; then
+    log "would install from $AIRULES_REPO:"
+    for f in "$DIST"/claude/rules/*.md; do [ -e "$f" ] && log "  copy -> $CLAUDE_DIR/rules/$(basename -- "$f")"; done
+    for d in "$DIST"/skills/*/; do [ -d "$d" ] && log "  copy -> $CLAUDE_DIR/skills/$(basename -- "$d") and $AGENTS_SKILLS/$(basename -- "$d")"; done
+    log "  render -> $CODEX_DIR/AGENTS.md"
+    log "  merge -> $CLAUDE_DIR/settings.json (SessionStart hooks)"
+    log "  patch -> $CODEX_DIR/config.toml (project_doc_max_bytes)"
+    return 0
+  fi
+
+  install_artifacts
+  [ "$NO_HOOKS" = 1 ] || install_hooks
+  [ "$NO_SCHED" = 1 ] || install_schedule
+  state_set last_check 0
+  log ""
+  log "installed agent-rules $(repo_version)"
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) log ""; log "add this to your shell profile so the desktop apps can find airules:"; log '  export PATH="$HOME/.local/bin:$PATH"' ;;
+  esac
+  log ""
+  log "start a new session (or /clear) to load the rules."
+  cmd_doctor || true
+}
+
+# -------------------------------------------------------------------- update
+
+cmd_update() {
+  CHECK=0
+  [ "${1:-}" = "--check" ] && CHECK=1
+  have git || die "git is required"
+  [ -d "$AIRULES_REPO/.git" ] || die "not a git checkout: $AIRULES_REPO"
+
+  before=$(git -C "$AIRULES_REPO" rev-parse --short HEAD 2>/dev/null || echo none)
+  if [ "$CHECK" = 1 ]; then
+    git -C "$AIRULES_REPO" fetch --quiet --no-tags origin 2>/dev/null || { log "offline"; return 0; }
+    up=$(git -C "$AIRULES_REPO" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo origin/main)
+    n=$(git -C "$AIRULES_REPO" rev-list --count "HEAD..$up" 2>/dev/null || echo 0)
+    log "$n commit(s) behind $up"
+    return 0
+  fi
+
+  if ! git -C "$AIRULES_REPO" diff --quiet 2>/dev/null; then
+    die "local changes in $AIRULES_REPO — commit or stash them, then retry"
+  fi
+  git -C "$AIRULES_REPO" pull --ff-only --quiet 2>/dev/null \
+    || warn "could not fast-forward (offline, or history diverged) — re-copying current artifacts"
+  after=$(git -C "$AIRULES_REPO" rev-parse --short HEAD 2>/dev/null || echo none)
+
+  install_artifacts
+  state_set behind 0 last_check "$(date -u +%s)" version "$(repo_version)"
+
+  if [ "$before" != "$after" ]; then
+    log "updated $before -> $after (agent-rules $(repo_version))"
+    log "start a new session or run /clear in Claude to load the new rules."
+  else
+    log "already current ($(repo_version))"
+  fi
+}
+
+# Detached, cache-only refresh. Never runs on the session-start critical path.
+cmd_refresh() {
+  lock=$AIRULES_STATE/refresh.lock
+  mkdir -p "$AIRULES_STATE"
+  mkdir "$lock" 2>/dev/null || exit 0
+  trap 'rmdir "$lock" 2>/dev/null || true' EXIT INT TERM HUP
+
+  behind=$(state_get behind 0)
+  if GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND='ssh -oBatchMode=yes' \
+     git -C "$AIRULES_REPO" -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=10 \
+         fetch --quiet --no-tags origin 2>/dev/null
+  then
+    up=$(git -C "$AIRULES_REPO" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo origin/main)
+    behind=$(git -C "$AIRULES_REPO" rev-list --count "HEAD..$up" 2>/dev/null || echo 0)
+    # Auto-apply: fast-forward only, clean tree only.
+    if [ "${behind:-0}" -gt 0 ] && git -C "$AIRULES_REPO" diff --quiet 2>/dev/null; then
+      if git -C "$AIRULES_REPO" merge --ff-only "$up" --quiet 2>/dev/null; then
+        install_artifacts >/dev/null 2>&1 || true
+        state_set pending_notice "$(repo_version)"
+        behind=0
+      fi
+    fi
+  fi
+  state_set behind "${behind:-0}" last_check "$(date -u +%s)"
+}
+
+# ---------------------------------------------------------------------- hook
+
+cmd_hook() {
+  event=startup
+  while [ $# -gt 0 ]; do
+    case $1 in --event) event=${2:-startup}; shift 2 ;; *) shift ;; esac
+  done
+  out=""
+
+  # /compact drops user and path-scoped rules; project CLAUDE.md survives. Re-assert.
+  if [ "$event" = compact ] && [ -r "$DIST/claude/rules/airules-00-core.md" ]; then
+    out=$(cat -- "$DIST/claude/rules/airules-00-core.md" 2>/dev/null || true)
+  fi
+
+  notice=$(state_get pending_notice "")
+  behind=$(state_get behind 0)
+  last=$(state_get last_check 0)
+  now=$(date -u +%s)
+  if [ "$(( now - ${last:-0} ))" -ge "$AIRULES_TTL" ] 2>/dev/null; then
+    ( "$AIRULES_SELF" _refresh >/dev/null 2>&1 </dev/null & ) >/dev/null 2>&1
+  fi
+
+  if [ -n "$notice" ]; then
+    out="${out}
+[airules] Rules were updated to $notice and are active in this session."
+    state_set pending_notice ""
+  elif [ "${behind:-0}" -gt 0 ] 2>/dev/null; then
+    out="${out}
+[airules] Agent rules are ${behind} commit(s) behind origin. An update is being applied in the
+background. Tell the user: once it lands, start a new session or run /clear to load it."
+  fi
+
+  [ -n "$out" ] || exit 0
+  if have python3; then
+    AIRULES_CTX=$out python3 -c '
+import json, os
+c = os.environ["AIRULES_CTX"]
+print(json.dumps({
+  "additionalContext": c,
+  "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": c},
+}))'
+  else
+    printf '%s\n' "$out"
+  fi
+  exit 0
+}
+
+# -------------------------------------------------------------------- status
+
+cmd_status() {
+  ver=$(repo_version)
+  sha=$(git -C "$AIRULES_REPO" rev-parse --short HEAD 2>/dev/null | tr -d '\n' || true)
+  br=$(git -C "$AIRULES_REPO" rev-parse --abbrev-ref HEAD 2>/dev/null | tr -d '\n' || true)
+  [ -n "$sha" ] || sha='no-commits'
+  [ -n "$br" ] || br='-'
+  behind=$(state_get behind 0)
+  last=$(state_get last_check 0)
+  log "agent-rules $ver   repo $AIRULES_REPO @ $sha ($br)"
+  if [ "${behind:-0}" -gt 0 ] 2>/dev/null; then
+    log "update    $behind commit(s) behind origin -> airules update"
+  elif [ "${last:-0}" -gt 0 ] 2>/dev/null; then
+    log "update    current (checked $(( ( $(date -u +%s) - last ) / 3600 ))h ago)"
+  else
+    log "update    never checked — runs automatically at next session start"
+  fi
+  n_rules=$(find "$CLAUDE_DIR/rules" -maxdepth 1 -name 'airules-*.md' 2>/dev/null | wc -l | tr -d ' ')
+  n_sk=$(find "$CLAUDE_DIR/skills" -maxdepth 1 \( -name 'book-*' -o -name 'idn-*' \) 2>/dev/null | wc -l | tr -d ' ')
+  n_ag=$(find "$AGENTS_SKILLS" -maxdepth 1 \( -name 'book-*' -o -name 'idn-*' \) 2>/dev/null | wc -l | tr -d ' ')
+  n_foreign=$(find "$AGENTS_SKILLS" -maxdepth 1 -mindepth 1 ! -name 'book-*' ! -name 'idn-*' 2>/dev/null | wc -l | tr -d ' ')
+  log "claude    rules/ $n_rules   skills/ $n_sk   memory block $([ -f "$CLAUDE_DIR/CLAUDE.md" ] && echo present || echo MISSING)"
+  if [ -f "$CODEX_DIR/AGENTS.md" ]; then
+    log "codex     AGENTS.md $(wc -c < "$CODEX_DIR/AGENTS.md" | tr -d ' ') B   skills $n_ag"
+  else
+    log "codex     not configured"
+  fi
+  log "other     $n_foreign foreign skill(s) in ~/.agents/skills left untouched"
+}
+
+# -------------------------------------------------------------------- doctor
+
+cmd_doctor() {
+  rc=0
+  [ -d "$AIRULES_REPO/.git" ] || { warn "repo is not a git checkout: $AIRULES_REPO"; rc=2; }
+  [ -f "$DIST/MANIFEST.json" ] || { warn "no dist/MANIFEST.json — run airules build"; rc=2; }
+
+  # Owned paths still present
+  state_owned_paths | while read -r p; do
+    [ -n "$p" ] || continue
+    if [ -L "$p" ] && [ ! -e "$p" ]; then warn "broken link: $p"; fi
+    [ -e "$p" ] || warn "missing: $p"
+  done
+
+  # Codex override shadows everything we install
+  [ -f "$CODEX_DIR/AGENTS.override.md" ] && { warn "$CODEX_DIR/AGENTS.override.md exists — it SHADOWS the global AGENTS.md"; rc=1; }
+
+  # Codex pointer targets must resolve, or the model silently reads nothing
+  if [ -f "$CODEX_DIR/AGENTS.md" ]; then
+    grep -o '/[^ ]*\.md' "$CODEX_DIR/AGENTS.md" 2>/dev/null | sort -u | while read -r t; do
+      [ -e "$t" ] || warn "dangling pointer in codex AGENTS.md: $t"
+    done
+  fi
+
+  # settings.json integrity
+  if [ -f "$CLAUDE_DIR/settings.json" ] && have python3; then
+    python3 - "$CLAUDE_DIR/settings.json" <<'PY' || rc=2
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception as e:
+    print(f"warning: settings.json is not valid JSON: {e}", file=sys.stderr); sys.exit(2)
+hooks = d.get("hooks", {}).get("SessionStart", [])
+mine = [h for e in hooks for h in e.get("hooks", []) if "hook-session-start" in str(h.get("command",""))]
+if len(mine) != 4:
+    print(f"warning: expected 4 airules SessionStart hooks, found {len(mine)}", file=sys.stderr)
+for h in mine:
+    cmd = str(h.get("command", ""))
+    if not cmd.startswith("/"):
+        print(f"warning: hook command is not an absolute path: {cmd}", file=sys.stderr)
+print(f"plugins intact: {len(d.get('enabledPlugins', {}))}")
+PY
+  fi
+
+  # Do not appear in the vercel skills lockfile
+  if [ -f "$HOME/.agents/.skill-lock.json" ] && have python3; then
+    python3 - "$HOME/.agents/.skill-lock.json" <<'PY' || true
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("warning: ~/.agents/.skill-lock.json is unreadable", file=sys.stderr); sys.exit(0)
+ours = [k for k in d.get("skills", {}) if k.startswith(("book-", "idn-"))]
+if ours:
+    print(f"warning: airules skills appear in the skills-CLI lockfile: {ours}", file=sys.stderr)
+PY
+  fi
+
+  [ "$rc" = 0 ] && log "doctor: clean"
+  return $rc
+}
+
+# ---------------------------------------------------------------------- init
+
+cmd_init() {
+  dir=${1:-.}
+  case ${1:-} in --*) dir=. ;; esac
+  dir=$(abspath "$dir")
+  [ -d "$dir" ] || die "no such directory: $dir"
+  require_dist
+
+  tpl=$AIRULES_REPO/src/templates
+  name=$(basename -- "$dir")
+
+  if [ -e "$dir/AGENTS.md" ]; then
+    warn "$dir/AGENTS.md exists — leaving it alone"
+  else
+    sed "s|@PROJECT@|$name|g" "$tpl/project-AGENTS.md.tmpl" > "$dir/AGENTS.md"
+    # The Codex app drops the global AGENTS.md when a project one exists
+    # (openai/codex#27705), so the critical guardrails are embedded here too.
+    {
+      printf '\n---\n\n## Global guardrails (embedded — do not edit here)\n\n'
+      sed -n '/^# Git ceiling/,$p' "$AIRULES_REPO/src/core/10-git-ceiling.md"
+    } >> "$dir/AGENTS.md"
+    log "created $dir/AGENTS.md"
+  fi
+
+  if [ -e "$dir/CLAUDE.md" ]; then
+    warn "$dir/CLAUDE.md exists — leaving it alone (use --adopt to migrate it)"
+  else
+    cp -- "$tpl/project-CLAUDE.md.tmpl" "$dir/CLAUDE.md"
+    log "created $dir/CLAUDE.md (bridge to AGENTS.md)"
+  fi
+
+  for sub in context rules; do mkdir -p "$dir/.agent/$sub"; done
+  [ -e "$dir/.agent/context/tech-stack.md" ] || cp -- "$tpl/tech-stack.md.tmpl" "$dir/.agent/context/tech-stack.md"
+  [ -e "$dir/.agent/task_history.md" ] || printf '# Task history\n\nMajor architectural changes, newest first.\n' > "$dir/.agent/task_history.md"
+
+  # Copy the stack rules into the project so every surface can read them without
+  # reaching outside the workspace.
+  for f in "$DIST"/claude/rules/airules-*.md; do
+    case $(basename -- "$f") in airules-00-core.md) continue ;; esac
+    cp -- "$f" "$dir/.agent/rules/$(basename -- "$f" | sed 's/^airules-//')"
+  done
+  log "created $dir/.agent/ (context, rules, task_history)"
+  log ""
+  log "review the files, then commit them."
+}
+
+# ----------------------------------------------------------------- uninstall
+
+cmd_uninstall() {
+  purge=0
+  [ "${1:-}" = "--purge" ] && purge=1
+  state_owned_paths | while read -r p; do
+    [ -n "$p" ] || continue
+    case $p in
+      "$CLAUDE_DIR/settings.json") have python3 && python3 "$LIB/merge_settings.py" "$p" x uninstall || true ;;
+      "$CLAUDE_DIR/CLAUDE.md") managed_block_remove "$p" ;;
+      "$CODEX_DIR/config.toml") have python3 && python3 "$LIB/patch_codex_config.py" "$p" uninstall || true ;;
+      crontab:*) crontab -l 2>/dev/null | grep -v 'airules update' | crontab - || true ;;
+      *.plist) launchctl unload "$p" 2>/dev/null || true; rm -f -- "$p" ;;
+      *) rm -rf -- "$p" ;;
+    esac
+  done
+  log "removed everything in the ownership ledger"
+  if [ "$purge" = 1 ]; then rm -rf -- "$AIRULES_STATE"; log "purged $AIRULES_STATE"; fi
+}
+
+# --------------------------------------------------------------------- main
+
+cmd=${1:-}
+[ $# -gt 0 ] && shift || true
+case $cmd in
+  install)   cmd_install "$@" ;;
+  update)    cmd_update "$@" ;;
+  _refresh)  cmd_refresh ;;
+  hook-session-start) cmd_hook "$@" ;;
+  status)    cmd_status "$@" ;;
+  doctor)    cmd_doctor "$@" ;;
+  init)      cmd_init "$@" ;;
+  uninstall) cmd_uninstall "$@" ;;
+  build)     have python3 || die "python3 required"; python3 "$AIRULES_REPO/build.py" "$@" ;;
+  version)   repo_version ;;
+  ""|-h|--help|help) usage ;;
+  *) usage; exit 2 ;;
+esac

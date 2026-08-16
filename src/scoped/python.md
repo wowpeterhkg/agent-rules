@@ -1,0 +1,38 @@
+---
+paths:
+  - "**/*.py"
+---
+
+# Python
+
+- PEP 8, `black` for formatting, `ruff` for lint and imports, `mypy` in strict mode. 4-space
+  indent.
+- Every function has type hints on parameters and an explicit return type.
+- Do not return untyped `dict` for structured data. Use a Pydantic v2 model (or a dataclass where
+  validation is not needed).
+- Custom exceptions inherit from one base domain exception. Catch explicit exception types; never
+  a bare `except:`.
+- `async def` for I/O-bound handlers in async frameworks. Do not mix blocking I/O into an async
+  path.
+- Use dependency injection (`Depends` in FastAPI) rather than module-level singletons for
+  anything with a lifecycle.
+
+Reference shape for the exception base:
+
+```python
+class DomainError(Exception):
+    """Base exception for all domain-level failures."""
+
+    def __init__(self, message: str, code: str = "INTERNAL_ERROR"):
+        self.message = message
+        self.code = code
+        super().__init__(self.message)
+
+
+class ResourceNotFoundError(DomainError):
+    def __init__(self, resource: str, resource_id: str):
+        super().__init__(
+            message=f"{resource} with ID '{resource_id}' was not found.",
+            code="RESOURCE_NOT_FOUND",
+        )
+```
