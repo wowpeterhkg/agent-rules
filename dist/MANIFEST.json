@@ -1,16 +1,16 @@
 {
   "artifacts": {
     "agents/AGENTS.md": {
-      "bytes": 40014,
-      "sha256": "ec753c02161b606378a6451d29379e3d517aba3e1e731cd128c1b706f42e267e"
+      "bytes": 40146,
+      "sha256": "ea7aa06a349b7001708f7edb59a9da39351a3b9fa86f52eda6ee88a2d7d1e02b"
     },
     "claude/CLAUDE.md": {
       "bytes": 341,
       "sha256": "d2468b74a5d1825525d1297f7d3354922ae681bf601c193d5bd36e4faf01bcc0"
     },
     "claude/rules/airules-00-core.md": {
-      "bytes": 22840,
-      "sha256": "fd021252561b4b322f168f8255b4f5e81966422f41dec6b26ee6ece002da76fe"
+      "bytes": 22972,
+      "sha256": "04b1a6da4df3d5fc22fff258818772f189689d15b8eeb6077088e76ee9bd7477"
     },
     "claude/rules/airules-ai-data-schema.md": {
       "bytes": 5090,
@@ -53,92 +53,92 @@
       "sha256": "a00c5db02bb8a5decdf660155a0f351c07cce4ccced0dc87ccc0d343c8b5f829"
     },
     "codex/AGENTS.md": {
-      "bytes": 18275,
-      "sha256": "d2813baaae6180d3c440a855ae03addb9a9d4060178ee0cc82a65e20180fb17a"
+      "bytes": 18108,
+      "sha256": "4d8eb97489b3f4053edd4326ee1985f7a41c9ad1a7f9a073f2b7d08b9e52f963"
     },
     "skills/book-clean-architecture/SKILL.md": {
       "bytes": 6777,
       "sha256": "dc47aba0380c9e11327cbe42d7b77b7df7c5a59a6ba7ce15cad831973f12e854"
     },
     "skills/book-clean-architecture/reference.md": {
-      "bytes": 17782,
-      "sha256": "1f0366be1720989c63df6da8f15f12e78f8786f6e712eeb16cf3690b4dab6cc4"
+      "bytes": 18297,
+      "sha256": "dd47638c2f2c80045b88d0e032598ca1574dad1a84b7aa41d08f2890473073b5"
     },
     "skills/book-code-construction/SKILL.md": {
       "bytes": 8058,
       "sha256": "df7de975111cbbd5f876c025f2304b1fb0320bd792332a96f535b2da11feb9d2"
     },
     "skills/book-code-construction/clean-code.md": {
-      "bytes": 13851,
-      "sha256": "0ec945c383144e2eeb52bdd18cc87668bff73c13421e17cc6e4ba3fc5905965e"
+      "bytes": 14148,
+      "sha256": "f8665f18c9e3e95644c5ff1f93a0ed39c80c2609e9bc51d9802fc5d44796480f"
     },
     "skills/book-code-construction/reference.md": {
-      "bytes": 12407,
-      "sha256": "57ca8fab93baea0761eeeca6c491fe79b093df47feb4172c0917a96f8ddc95a4"
+      "bytes": 12761,
+      "sha256": "605d40bfa6e65de7182f1712bd2dd2086c8693005d874bd6522e8cd609677542"
     },
     "skills/book-data-intensive/SKILL.md": {
       "bytes": 8227,
       "sha256": "e256ef848a8ae6206a0b7bc0dffd4dc68c7e3e552853e2b0d53c4abdd3713ccd"
     },
     "skills/book-data-intensive/reference.md": {
-      "bytes": 16084,
-      "sha256": "8c1bfe1529076fda8f828ed6939b63bc3016830ad3c705071699a250e98b8f25"
+      "bytes": 16477,
+      "sha256": "41f15e2b83cfc46600e1fac7ef3dbc383595781b3d28f642f7353057a5f100fc"
     },
     "skills/book-domain-driven-design/SKILL.md": {
       "bytes": 7915,
       "sha256": "610aff314d6e451a9d04eb80d8ee2f2ab61208558555010b87dfdd6b99fe405b"
     },
     "skills/book-domain-driven-design/strategic.md": {
-      "bytes": 42424,
-      "sha256": "de806ceb828df4408e452361ab587d81f213443ad057017b1f6bed2334d5aaa6"
+      "bytes": 43403,
+      "sha256": "c75076dd3a7ef61f6af4ffc1a09330b9e3365f693b689ac72324e05fb5557cd6"
     },
     "skills/book-domain-driven-design/tactical.md": {
-      "bytes": 12848,
-      "sha256": "cd2c1d404f60720cebca17fcffed9d68d94b1eef4a13bed63a4f59f01db005ad"
+      "bytes": 13185,
+      "sha256": "5c12ee147e865aa6e54468602524ac00fc233a31073b41529973c9f21065d855"
     },
     "skills/book-enterprise-patterns/SKILL.md": {
       "bytes": 9369,
       "sha256": "894ee8a918de69b0315c894f75d5bef19df39c78ba2ac6673ed2d16779e4f4f9"
     },
     "skills/book-enterprise-patterns/reference.md": {
-      "bytes": 15501,
-      "sha256": "e7f30e7d65005924ec29cc0c6f032aedd0b1bffa22223d5386c5a3140cd76af0"
+      "bytes": 15905,
+      "sha256": "6d44199e032c16fd1dec7efef235d0e303825876f5520f26c3af59d3b846a722"
     },
     "skills/book-legacy-code/SKILL.md": {
       "bytes": 6962,
       "sha256": "bdfe134b7c1d7095f740c41382539a65f30cadc2bc4fa539a3093da466f53954"
     },
     "skills/book-legacy-code/reference.md": {
-      "bytes": 13817,
-      "sha256": "8b22bfc3d2851509d4cd8e05fbb9aca9e934f4b6915cb65fe8d6d9d241393fce"
+      "bytes": 14188,
+      "sha256": "678ba356e093f6ac7829e5e38fff70e3655dd7136ad9dffedc15dc9d706f9ef2"
     },
     "skills/book-pragmatic-programmer/SKILL.md": {
       "bytes": 8424,
       "sha256": "c1e593f03aaf52c0048cf09270f635a0389dfd1632c401a0d486f12991f13e8c"
     },
     "skills/book-pragmatic-programmer/reference.md": {
-      "bytes": 13398,
-      "sha256": "ea10063caff1989c1442c2aff501a942281fb5b06456e822ab856c701fc5e28d"
+      "bytes": 13757,
+      "sha256": "7305827d4de987f4590c3109125537dc8c0c31f96b9730c6092037bd9041e757"
     },
     "skills/book-production-reliability/SKILL.md": {
       "bytes": 7638,
       "sha256": "5a422e777d44d8fd19b0c2790ba3ec350c45dbcb62ba2ad0a3b28f3e9a388a54"
     },
     "skills/book-production-reliability/reference.md": {
-      "bytes": 13542,
-      "sha256": "ac72b846e9584f376090c8508b2bc66f557ea8d14195ea3b20e15a66b27c4aec"
+      "bytes": 13924,
+      "sha256": "9d3d203ba7eee510afcbf0f4bd57226641706e0e62bec5af8cc3f07f618f0551"
     },
     "skills/book-refactoring/SKILL.md": {
       "bytes": 6726,
       "sha256": "1d94f9f528b89b3253203274bc5e1645ede2228231404975d34cd145236eef9e"
     },
     "skills/book-refactoring/catalog.md": {
-      "bytes": 6287,
-      "sha256": "c7c752b794400cbc0527c5a721c323531dfe3c0e963ab95f7c92c51603006054"
+      "bytes": 6351,
+      "sha256": "54ccf06c9ccada7aa18bba0f3bc02d8b7685dafd2ae7f08a1c031cdd114aefa8"
     },
     "skills/book-refactoring/reference.md": {
-      "bytes": 17866,
-      "sha256": "d7b9cf2b5ca26f3576943ff59cdeee61b65138213777b0e03bfe1075cbd966fc"
+      "bytes": 18299,
+      "sha256": "c6b548b59e45c9b1030eb10d36dd09265a8db41e4ad60a3a27c1811ce143dcab"
     },
     "skills/idn-cloud-deploy/SKILL.md": {
       "bytes": 6600,
@@ -196,12 +196,12 @@
   "budgets": [
     {
       "budget": 24576,
-      "bytes": 22840,
+      "bytes": 22972,
       "file": "dist/claude/rules/airules-00-core.md"
     },
     {
       "budget": 18432,
-      "bytes": 18275,
+      "bytes": 18108,
       "file": "dist/codex/AGENTS.md"
     }
   ],

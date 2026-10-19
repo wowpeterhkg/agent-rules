@@ -347,12 +347,12 @@ about *what is allowed*.
 
 | Layer | Approved |
 | --- | --- |
-| Frontend | React 19, Vite, TypeScript strict, Tailwind (v4 new / v3 existing), TanStack Query, zod, Vitest |
-| Backend — TypeScript | NestJS; Express or Fastify only for a single-purpose service |
-| Backend — Python / AI | FastAPI, Pydantic v2 |
-| Backend — Go | high-concurrency cores, streaming pipelines |
-| Data | PostgreSQL + Prisma; ClickHouse (+ PeerDB CDC) for analytics; Redis for cache |
-| Infra | Docker multi-stage, Compose, nginx, Docker Hub |
+| Frontend | React 19, strict TypeScript, Vite or Next.js, Tailwind (v4 new / v3 existing), TanStack Query, Zod, Vitest |
+| Backend — Go | Default for application APIs, modules, authentication, high-concurrency cores, and pipelines |
+| Backend — TypeScript | Fastify or Express |
+| Backend — Python / AI | FastAPI and Pydantic v2 only for AI, ML, or Python-dependent workflows |
+| Data | PostgreSQL as source of truth; Prisma for TypeScript services; ClickHouse (+ PeerDB CDC) for analytics; Redis for cache |
+| Infra | Docker multi-stage builds, Docker Compose, nginx, Docker Hub |
 
 The frontend holds no secrets and never talks to a database. ClickHouse is never written by
 application code and never read for transactional queries. Anything in Redis must be
@@ -364,18 +364,17 @@ The set is broad on purpose, which makes the selection criteria the part that ma
 
 | Workload | Choose |
 | --- | --- |
-| Modules, auth surface, several bounded areas | NestJS |
-| Python, ML, model orchestration, Pydantic-heavy | FastAPI |
-| High concurrency, streaming, throughput-bound | Go |
-| One endpoint deep, no auth surface | Express or Fastify |
+| Application APIs, modules, authentication, high concurrency, pipelines | Go |
+| Intentionally TypeScript backend | Fastify or Express |
+| AI, ML, model orchestration, or Python-dependent workflow | FastAPI |
 
 State which you are using and why at project start, and record it in `docs/decisions/`. Never mix
 two backend frameworks inside one service.
 
 ## Anything not listed
 
-Adding a framework, ORM, database, state manager, or major library that is not above is a
-decision, not a step:
+Adding a framework, ORM, database, state manager, database driver, code generator, or major library
+that is not above is a decision, not a step:
 
 1. Name it.
 2. Say what it replaces, and why the approved option does not fit.
