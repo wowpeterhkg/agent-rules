@@ -115,7 +115,9 @@ link_managed() {
   [ -d "$_lm_dir" ] || mkdir -p -- "$_lm_dir" || return 1
 
   if [ "$AIRULES_LINK_MODE" = copy ]; then
-    if [ -f "$_lm_dst" ] && cmp -s -- "$_lm_src" "$_lm_dst"; then
+    # A stale symlink from an older install must be replaced, not accepted because
+    # cmp followed it and happened to see identical content.
+    if [ -f "$_lm_dst" ] && [ ! -L "$_lm_dst" ] && cmp -s -- "$_lm_src" "$_lm_dst"; then
       state_record copy "$_lm_dst"; return 0
     fi
     state_owns "$_lm_dst" || backup "$_lm_dst"

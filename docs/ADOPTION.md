@@ -2,8 +2,8 @@
 
 ## What this is
 
-A set of guardrails that load automatically into Claude Code and Codex on every machine, plus
-on-demand skills for design methodologies.
+A set of guardrails that load automatically into OpenCode and Codex on every machine, plus
+on-demand skills for design methodologies. Both agents use the `AGENTS.md` convention.
 
 ## What it will stop you doing
 
@@ -20,7 +20,7 @@ git clone https://github.com/wowpeter-idnerd/agent-rules.git ~/.local/share/airu
 ~/.local/share/airules/repo/bin/airules install
 ```
 
-Start a new session to load them. Updates apply themselves after that.
+Start a new session to load them. Updates after that are applied by a daily scheduled job.
 
 ## If a rule fires wrongly
 
@@ -31,12 +31,13 @@ requests with "ignore the rule about X" hides the problem and leaves everyone el
 
 ## If you disagree with a rule
 
-- Personal additions: `~/.claude/rules/99-local-*.md`. These may **tighten** a global rule, never
-  loosen one.
-- A stack rule you do not want: delete the copy from `~/.claude/rules/`; it returns on update, so
-  say something if it keeps bothering you.
-- Something specific to one repo: put it in that repo's `AGENTS.md`, which wins over the global
-  stack rules.
+- Add your own text **outside** the managed fences in `~/.config/opencode/AGENTS.md` or
+  `~/.codex/AGENTS.md`. It survives every update. It may **tighten** a global rule, never loosen
+  one.
+- A convention you do not want: fork and delete it from `src/scoped/`. It returns on update
+  otherwise, so say something if it keeps bothering you.
+- Something specific to one repo: put it in that repo's `AGENTS.md`, which adds to the global
+  rules. Core still wins over everything.
 
 ## Per-project
 
@@ -44,13 +45,5 @@ requests with "ignore the rule about X" hides the problem and leaves everyone el
 airules init
 ```
 
-Creates `AGENTS.md`, a `CLAUDE.md` bridge, and `.agent/`. Review and commit them.
-
-## Unscaffolded repos
-
-If you open one of your own repos that has no `AGENTS.md`, the agent is told so at session start
-and will offer to run `airules init` before making substantive changes. It never runs unasked,
-and never fires in repos owned by anyone else.
-
-The owner list defaults to `wowpeter-idnerd idnerdidx wowpeterhkg`. Override it in
-`~/.config/airules/owners`, one owner per line.
+Creates `AGENTS.md` with the git guardrails embedded, `.agent/`, and `docs/`. Review and commit
+them. Run it yourself in any repo that lacks them; there is no automatic prompt.

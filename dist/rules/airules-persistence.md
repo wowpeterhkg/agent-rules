@@ -25,6 +25,10 @@ paths:
 For the OLTP/OLAP split: PostgreSQL holds transactional state; ClickHouse holds analytics, event
 logs, and time series; replication between them is CDC (PeerDB), not hand-written ETL. Do not
 query the analytics store for transactional reads, and do not write application state into it.
+Where the standard repo structure is in use, keep them in separate folders:
+`src/database/application/` (PostgreSQL — source of truth: migrations, models, schema, seeds) and
+`src/database/analytics/` (ClickHouse schema, event/time-series tables, PeerDB CDC definitions).
+Application code writes only to `application/`; `analytics/` is derived by CDC.
 
 ## Schema hygiene
 

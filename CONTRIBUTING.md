@@ -51,7 +51,7 @@ produces paralysis or silent violation.
 ## Testing a rule
 
 Add an adversarial prompt under `tests/prompts/` — the phrasing most likely to talk an agent past
-your rule, plus the behaviour you expect. Try it against both Claude Code and Codex; they do not
+your rule, plus the behaviour you expect. Try it against both OpenCode and Codex; they do not
 always land the same way.
 
 ## Attribution

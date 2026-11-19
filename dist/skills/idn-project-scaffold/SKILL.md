@@ -15,7 +15,6 @@ to write a document from scratch.
 
 ```
 AGENTS.md                    entry point — what is true of THIS repo
-CLAUDE.md                    two lines: a comment plus @AGENTS.md
 .agent/                      agent-facing operational context
   context/tech-stack.md      runtimes, key dependencies, quirks
   rules/                     copies of the global stack rules, for sandboxed surfaces
@@ -30,12 +29,20 @@ src/
     core/                    pure domain logic, no I/O
     services/                orchestration and external integrations
     middleware/              auth, validation, error handling
-  database/                  migrations, models, schema, seeds
+  database/
+    application/             transactional source of truth: migrations, models, schema, seeds
+    analytics/               derived store: ClickHouse schema, event/time-series tables, PeerDB CDC
   shared/                    cross-tier contracts: types, DTOs, schemas
 tests/
   unit/  integration/  mocks/
 .docker/                     Dockerfiles and container assets
 ```
+
+The database tier is split by store. `application/` holds the transactional source of truth
+(PostgreSQL, or Supabase when it has been proposed and approved). `analytics/` holds the derived
+store (ClickHouse schemas, event and time-series table definitions, PeerDB CDC pipeline
+definitions). Application code writes only to `application/`; the analytics side is populated by
+CDC, never by hand-written application state.
 
 Adapt where a project genuinely differs — a single-purpose service does not need four `src/`
 tiers. Say what you changed and why; do not silently invent a different layout.

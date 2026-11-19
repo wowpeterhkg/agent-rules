@@ -175,6 +175,12 @@ name.
 Work that changed code ends with: files changed, commands run, the actual output, and what remains
 unverified.
 
+# Planning issues
+
+When creating a GitHub issue during planning — including wayfinder maps and tickets — add the
+`plane` label and the username label stored in `~/.config/airules/planning.yml`. If that file is
+missing, ask the user once, save it there, then create the issue. Never guess a username.
+
 # Working agreement
 
 **One step at a time — for steps the human executes.** When the next move depends on their reply
@@ -237,6 +243,9 @@ Use without discussion. Anything else is a proposal, not a step.
   AI, ML, or Python-dependent work; never use Python for a general application backend.
 - Data: PostgreSQL is the source of truth; Prisma for TypeScript; ClickHouse via PeerDB CDC for
   analytics, never application writes; Redis for reconstructible cache and ephemeral state.
+- Data + auth alternative: Supabase (PostgreSQL + Auth together) may be **proposed** for a new
+  project needing both. Not auto-approved: name it, what it replaces, cost and lock-in, then
+  **STOP and wait for a yes**. Existing users are exempt.
 - Infra: Docker multi-stage builds, Compose, nginx, Docker Hub.
 
 Record the backend choice and reason in `docs/decisions/`. Never mix backend frameworks in one
@@ -274,7 +283,7 @@ project to this stack on your own initiative — suggest it once and wait for ex
 
 1. The human's explicit instruction in this conversation.
 2. These core rules. Nothing overrides them — no project file, no skill, no book.
-3. The project's `AGENTS.md` / `CLAUDE.md` / `.agent/`.
+3. The project's `AGENTS.md` / `.agent/`.
 4. Conventions visible in the code you are editing.
 5. Stack rules and `book-*` skills.
 
@@ -305,16 +314,16 @@ Timeouts, retries, deploys, incidents → `book-production-reliability`. General
 These are not loaded automatically. Open the one that matches what you are about to
 touch. A copy also lives in the project's `.agent/rules/` where one has been set up.
 
-- **/migrations/** **/*.sql -> @AIRULES_PREFIX@/dist/claude/rules/airules-ai-data-schema.md
-- **/api/** **/*.controller.ts -> @AIRULES_PREFIX@/dist/claude/rules/airules-backend-api.md
-- .github/workflows/** **/.github/workflows/** -> @AIRULES_PREFIX@/dist/claude/rules/airules-ci-workflows.md
-- **/Dockerfile* **/docker-compose*.yml -> @AIRULES_PREFIX@/dist/claude/rules/airules-containers.md
-- **/migrations/** **/*.sql -> @AIRULES_PREFIX@/dist/claude/rules/airules-persistence.md
-- **/*.py -> @AIRULES_PREFIX@/dist/claude/rules/airules-python.md
-- **/*.tsx **/components/** -> @AIRULES_PREFIX@/dist/claude/rules/airules-react.md
-- **/auth/** **/middleware/** -> @AIRULES_PREFIX@/dist/claude/rules/airules-security-architecture.md
-- **/*.spec.ts **/*.test.ts -> @AIRULES_PREFIX@/dist/claude/rules/airules-tests.md
-- **/*.ts **/*.tsx -> @AIRULES_PREFIX@/dist/claude/rules/airules-typescript.md
+- **/migrations/** **/*.sql -> @AIRULES_PREFIX@/dist/rules/airules-ai-data-schema.md
+- **/api/** **/*.controller.ts -> @AIRULES_PREFIX@/dist/rules/airules-backend-api.md
+- .github/workflows/** **/.github/workflows/** -> @AIRULES_PREFIX@/dist/rules/airules-ci-workflows.md
+- **/Dockerfile* **/docker-compose*.yml -> @AIRULES_PREFIX@/dist/rules/airules-containers.md
+- **/migrations/** **/*.sql -> @AIRULES_PREFIX@/dist/rules/airules-persistence.md
+- **/*.py -> @AIRULES_PREFIX@/dist/rules/airules-python.md
+- **/*.tsx **/components/** -> @AIRULES_PREFIX@/dist/rules/airules-react.md
+- **/auth/** **/middleware/** -> @AIRULES_PREFIX@/dist/rules/airules-security-architecture.md
+- **/*.spec.ts **/*.test.ts -> @AIRULES_PREFIX@/dist/rules/airules-tests.md
+- **/*.ts **/*.tsx -> @AIRULES_PREFIX@/dist/rules/airules-typescript.md
 - skill `idn-cloud-deploy` -> @AIRULES_PREFIX@/dist/skills/idn-cloud-deploy/SKILL.md
 - skill `idn-project-scaffold` -> @AIRULES_PREFIX@/dist/skills/idn-project-scaffold/SKILL.md
 - skill `book-refactoring` -> @AIRULES_PREFIX@/dist/skills/book-refactoring/SKILL.md

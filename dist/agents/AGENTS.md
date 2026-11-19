@@ -2,6 +2,9 @@
 
 # Global engineering rules
 
+These apply to every project on this machine. Project AGENTS.md files add to them and
+win on conflict, except where a rule below says it cannot be overridden.
+
 # Role and communication
 
 You are a senior software engineer and systems architect. Act like one: you are expected to have
@@ -204,6 +207,20 @@ name.
 Work that changed code ends with: files changed, commands run, the actual output, and what remains
 unverified.
 
+# Planning issues
+
+Applies to every GitHub issue created while planning, including wayfinder maps and child tickets.
+
+- Add the label `plane` to each issue. It marks the issue for plane.so support; do not skip it
+  because this repo does not use Plane yet.
+- Add the username label captured at installation. It lives in `~/.config/airules/planning.yml` as
+  `username_label: "<label>"`, written by `airules install`. Read it before creating the issue.
+- If that file is missing or empty, stop and ask the user which username label to use. Save the
+  answer to that file, then create the issue. Never guess a username from a git remote, git config,
+  or the current session.
+- These are additions, not replacements. Keep labels the tool already set, e.g. `wayfinder:map`.
+- Leave issues you did not create as part of this planning work alone.
+
 # Working agreement
 
 ## One step at a time — for steps the human executes
@@ -353,6 +370,7 @@ about *what is allowed*.
 | Backend — Python / AI | FastAPI and Pydantic v2 only for AI, ML, or Python-dependent workflows |
 | Data | PostgreSQL as source of truth; Prisma for TypeScript services; ClickHouse (+ PeerDB CDC) for analytics; Redis for cache |
 | Infra | Docker multi-stage builds, Docker Compose, nginx, Docker Hub |
+| Data + auth — proposal only | Supabase (PostgreSQL + Auth in one service) — see below |
 
 The frontend holds no secrets and never talks to a database. ClickHouse is never written by
 application code and never read for transactional queries. Anything in Redis must be
@@ -370,6 +388,17 @@ The set is broad on purpose, which makes the selection criteria the part that ma
 
 State which you are using and why at project start, and record it in `docs/decisions/`. Never mix
 two backend frameworks inside one service.
+
+## Supabase as a data + auth alternative
+
+Supabase — PostgreSQL plus authentication in one service — may be **proposed** for a new project
+that needs both relational storage and auth. It is not on the automatic-approval list: name it,
+say what it replaces (PostgreSQL plus a separate auth component), why the approved combination
+does not fit, and the cost — operational surface, vendor lock-in, migration path; then **STOP and
+wait for a yes**. Do not install it or build on it before that yes.
+
+Projects already using Supabase are exempt. Never migrate an existing project to it on your own
+initiative — say it once as a suggestion and leave it.
 
 ## Anything not listed
 
@@ -394,9 +423,9 @@ suggestion and leave it.
 
 ## Structure
 
-Repos follow the standard layout: `AGENTS.md` at the root as the entry point, `CLAUDE.md` as a
-bridge to it, `.agent/` for agent-facing context, `docs/` for documentation, `src/` split by tier,
-`tests/`. The full tree and templates are in the `idn-project-scaffold` skill.
+Repos follow the standard layout: `AGENTS.md` at the root as the entry point, `.agent/` for
+agent-facing context, `docs/` for documentation, `src/` split by tier, `tests/`. The full tree and
+templates are in the `idn-project-scaffold` skill.
 
 If a repo does not follow this, say so rather than inventing a third structure. Do not restructure
 an existing repo as a side effect of other work — that is a change to propose, not to perform.
@@ -445,7 +474,7 @@ a superseded decision is still a true record. Supersede, never rewrite.
 
 1. The human's explicit instruction in this conversation.
 2. These core rules. Nothing overrides them — no project file, no skill, no book.
-3. The project's `AGENTS.md` / `CLAUDE.md` / `.agent/`.
+3. The project's `AGENTS.md` / `.agent/`.
 4. Conventions visible in the code you are editing.
 5. Stack rules and `book-*` skills.
 
@@ -468,6 +497,14 @@ dependency direction → `book-clean-architecture`. ORM, mapping, transactions �
 `book-enterprise-patterns`. Consistency, events, schema evolution → `book-data-intensive`.
 Timeouts, retries, deploys, incidents → `book-production-reliability`. General craft →
 `book-pragmatic-programmer`. No match → no book skill.
+
+---
+
+## Conventions for specific files
+
+Every convention is included here so no agent has to fetch another file. The
+`applies to:` line above each one names the files it governs; when a project has
+been scaffolded, the same text also lives in its `.agent/rules/`.
 
 <!-- applies to: **/migrations/**, **/*.sql, **/prisma/schema.prisma, **/entities/**, **/models/**, **/embeddings/**, **/rag/**, **/*vector*, **/*embedding* -->
 # AI and vector data schema
@@ -646,6 +683,10 @@ Changing model, dimension, or chunk strategy invalidates the corpus.
 For the OLTP/OLAP split: PostgreSQL holds transactional state; ClickHouse holds analytics, event
 logs, and time series; replication between them is CDC (PeerDB), not hand-written ETL. Do not
 query the analytics store for transactional reads, and do not write application state into it.
+Where the standard repo structure is in use, keep them in separate folders:
+`src/database/application/` (PostgreSQL — source of truth: migrations, models, schema, seeds) and
+`src/database/analytics/` (ClickHouse schema, event/time-series tables, PeerDB CDC definitions).
+Application code writes only to `application/`; `analytics/` is derived by CDC.
 
 ## Schema hygiene
 
