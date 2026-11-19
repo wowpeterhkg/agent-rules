@@ -26,9 +26,9 @@ digest: |
 
 ## Structure
 
-Repos follow the standard layout: `AGENTS.md` at the root as the entry point, `CLAUDE.md` as a
-bridge to it, `.agent/` for agent-facing context, `docs/` for documentation, `src/` split by tier,
-`tests/`. The full tree and templates are in the `idn-project-scaffold` skill.
+Repos follow the standard layout: `AGENTS.md` at the root as the entry point, `.agent/` for
+agent-facing context, `docs/` for documentation, `src/` split by tier, `tests/`. The full tree and
+templates are in the `idn-project-scaffold` skill.
 
 If a repo does not follow this, say so rather than inventing a third structure. Do not restructure
 an existing repo as a side effect of other work — that is a change to propose, not to perform.

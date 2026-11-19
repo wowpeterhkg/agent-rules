@@ -19,5 +19,5 @@ A core rule with **zero of both** is dead weight and is also deleted.
 
 | Rule | Why it exists |
 | --- | --- |
-| `10-git-ceiling` | Promoted from `ppt/CLAUDE.md`, where it was written after agents merged/pushed without asking. |
+| `10-git-ceiling` | Promoted from a personal project instruction file, written after agents merged/pushed without asking. |
 | `50-working-agreement` | Migrated from a personal `agent.md` refined over many sessions. |

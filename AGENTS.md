@@ -8,15 +8,23 @@ you are about to touch.
 
 ## Stack
 
-<!-- Languages, frameworks, versions. Keep it short; detail belongs in .agent/context/tech-stack.md -->
+- Python 3 standard library (`build.py`), POSIX sh (`bin/airules`, `lib/common.sh`), GitHub Actions.
+- No runtime dependencies and no PyYAML. Vendored rule sets under `vendor/books/` are read-only.
 
 ## Shape
 
-<!-- Services/packages and what each owns. Name the boundaries that must not be crossed. -->
+- `src/` is the source of truth: `core/` always-on, `scoped/` conventions, `skills/` house procedures.
+- `dist/` is generated from `src/` plus `vendor/books/` by `build.py`. Never hand-edit it.
+- `bin/airules` installs artifacts into OpenCode (`~/.config/opencode`) and Codex (`~/.codex`); `lib/` holds its helpers.
+- `vendor/` is immutable and sha256-locked; CI verifies it.
 
 ## Build, test, run
 
-<!-- The exact commands. An agent should never have to guess these. -->
+- `python3 build.py` — build `dist/`, enforce byte budgets, lint frontmatter, scan for secrets.
+- `python3 build.py --lint-only` / `--verify-vendor` — validation only.
+- `shellcheck -x -s sh bin/airules lib/common.sh scripts/sync-vendor.sh`.
+- `HOME=$(mktemp -d) ./bin/airules install --repo "$PWD" --no-schedule --yes` — install smoke test.
+- CI in `.github/workflows/build.yml`: build, stale `dist/`, vendor lock, shellcheck, install/uninstall smoke tests.
 
 ## Things that will bite you
 

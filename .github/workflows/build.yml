@@ -31,6 +31,13 @@ jobs:
       - name: Vendor lock integrity
         run: python3 build.py --verify-vendor
 
+      - name: No legacy CLAUDE.md artifacts or references
+        run: |
+          if git grep -in claude -- . ':!.github/workflows/build.yml'; then
+            echo "::error::CLAUDE.md references remain; this distribution is AGENTS.md-only"
+            exit 1
+          fi
+
       - name: shellcheck
         run: |
           sudo apt-get update -qq && sudo apt-get install -y shellcheck
@@ -39,6 +46,9 @@ jobs:
       - name: Smoke test — clean HOME, install then uninstall
         run: |
           export HOME=$(mktemp -d)
+          # The runner pins XDG_CONFIG_HOME/XDG_STATE_HOME to /home/runner paths;
+          # clear them so a fake HOME really is isolated.
+          unset XDG_CONFIG_HOME XDG_STATE_HOME
           ./bin/airules install --repo "$GITHUB_WORKSPACE" --no-schedule --yes
           ./bin/airules status
           ./bin/airules doctor
@@ -47,29 +57,38 @@ jobs:
             echo "::error::uninstall left residue"; exit 1
           fi
 
-      - name: Smoke test — existing settings.json must survive
+      - name: Smoke test — existing notes and config survive
         run: |
-          export HOME=$(mktemp -d); mkdir -p "$HOME/.claude"
-          printf '%s\n' '{"enabledPlugins":{"a@m":true,"b@m":true},"effortLevel":"medium"}' \
-            > "$HOME/.claude/settings.json"
-          printf 'my own notes\n' > "$HOME/.claude/CLAUDE.md"
+          export HOME=$(mktemp -d)
+          unset XDG_CONFIG_HOME XDG_STATE_HOME
+          mkdir -p "$HOME/.config/opencode" "$HOME/.codex"
+          printf 'my own notes\n' > "$HOME/.config/opencode/AGENTS.md"
+          printf 'my own codex notes\n' > "$HOME/.codex/AGENTS.md"
+          printf 'model = "test"\n' > "$HOME/.codex/config.toml"
           ./bin/airules install --repo "$GITHUB_WORKSPACE" --no-schedule --yes
           ./bin/airules install --repo "$GITHUB_WORKSPACE" --no-schedule --yes
           python3 - <<'PY'
-          import json, os
-          s = json.load(open(os.environ["HOME"] + "/.claude/settings.json"))
-          assert s["enabledPlugins"] == {"a@m": True, "b@m": True}, s
-          assert s["effortLevel"] == "medium", s
-          n = sum(len(e["hooks"]) for e in s["hooks"]["SessionStart"])
-          assert n == 4, f"hooks duplicated on re-install: {n}"
-          assert all(h["command"].startswith("/")
-                     for e in s["hooks"]["SessionStart"] for h in e["hooks"]), s
+          import os
+          home = os.environ["HOME"]
+          oc = open(home + "/.config/opencode/AGENTS.md").read()
+          cx = open(home + "/.codex/AGENTS.md").read()
+          cfg = open(home + "/.codex/config.toml").read()
+          assert "my own notes" in oc, oc
+          assert "my own codex notes" in cx, cx
+          assert 'model = "test"' in cfg, cfg
+          assert "airules managed block" in oc and "airules managed block" in cx
+          assert oc.count(">>> airules managed block >>>") == 1, "duplicated block on re-install"
+          assert cx.count(">>> airules managed block >>>") == 1, "duplicated block on re-install"
+          assert "/dist/rules/airules-" in cx, "codex pointers missing"
           PY
           ./bin/airules uninstall
           python3 - <<'PY'
-          import json, os
-          s = json.load(open(os.environ["HOME"] + "/.claude/settings.json"))
-          assert s["enabledPlugins"] == {"a@m": True, "b@m": True}, s
-          assert not s.get("hooks", {}).get("SessionStart"), s
-          assert "my own notes" in open(os.environ["HOME"] + "/.claude/CLAUDE.md").read()
+          import os
+          home = os.environ["HOME"]
+          oc = open(home + "/.config/opencode/AGENTS.md").read()
+          cx = open(home + "/.codex/AGENTS.md").read()
+          assert oc.strip() == "my own notes", oc
+          assert cx.strip() == "my own codex notes", cx
+          sk = home + "/.config/opencode/skills"
+          assert not os.path.exists(sk) or not os.listdir(sk), "skills left behind"
           PY

@@ -2,37 +2,44 @@
 
 ## Rules do not seem to be applied
 
-Rules load when a **session** starts, not when the app starts. Start a new chat, run `/clear`, or
-open a new terminal session. A full app restart works but is heavier than needed.
+Rules load when a **session** starts, not when the app starts. Start a new chat or a new terminal
+session. A full app restart works but is heavier than needed.
 
 Then: `airules doctor`.
 
-## Stack rules do not apply to files outside the working directory
+## Stack conventions are not being applied to a specific file
 
-Path-scoped rules (`airules-*.md` with a `paths:` block) are matched against the **working
-directory**. A file read from a scratch directory, a sibling repo, or an absolute path outside the
-cwd matches nothing — only `airules-00-core.md` applies, because it has no `paths:` block.
+Neither OpenCode nor Codex auto-loads rules by file path. OpenCode gets every convention inline in
+its global `AGENTS.md`; Codex gets a list of soft pointers to standalone files in `dist/rules/`.
+If the agent has not opened the relevant one, the convention has not reached it.
 
-Verified 2026-08-16 on Claude Code desktop by sealed-token probe: an identical `.sql` file pulled
-`airules-persistence.md` + `airules-ai-data-schema.md` when read from inside the cwd, and nothing
-at all from outside it. The probe also confirmed `**/` matches zero directories, so a root-level
-`Dockerfile` does get `airules-containers.md`.
+Consequences:
 
-Consequence: cross-repo and scratch-directory work runs on core rules alone. The safety
-constraints still hold; the language, stack, and container rules do not. Read the relevant
-`airules-*.md` explicitly if it matters.
+- The safety rules always load — they are in the core layer of both artifacts.
+- Language, stack, and container conventions are present in OpenCode's context but may be
+  ignored. For Codex they are only reachable if the model opens the pointer.
+- Scaffolded projects also hold copies in `.agent/rules/` — point the agent at those explicitly
+  when it matters.
 
-Untested: whether Edit, Write, or Grep trigger injection the way Read does, and whether Codex
-scopes the same way.
+## Skills or rules missing after an update
 
-## Claude: skills or rules missing after an update
-
-Claude Code's auto-updater has been observed removing user symlinks from `~/.claude/skills/`.
-This installer uses real copies for that reason, but if something is missing:
+Auto-updaters have been observed removing user-installed skills. This installer uses real copies,
+but if something is missing:
 
 ```bash
 airules update
 ```
+
+Check `airules status` for the paths it manages and `airules doctor` for broken ones.
+
+## OpenCode: global rules not loading
+
+The global file must be at `~/.config/opencode/AGENTS.md` (or
+`$XDG_CONFIG_HOME/opencode/AGENTS.md`). OpenCode loads it on session start, followed by every
+`AGENTS.md` from the workspace directory upward. A directory's own `AGENTS.md` adds to the global
+one; it does not replace it.
+
+If you moved your XDG config directory after installing, re-run `airules install`.
 
 ## Codex: global rules ignored in a project
 
@@ -54,16 +61,12 @@ places inside the repo.
 ## The desktop app cannot find `airules`
 
 Desktop apps recover `PATH` from your shell profile only. Make sure `~/.local/bin` is exported
-in `~/.zshrc` (not only `~/.zprofile`), then restart the app. The hook command itself is stored
-as an absolute path, so hooks keep working regardless.
-
-## Claude Desktop "Cowork" tab has none of this
-
-Cowork syncs skills and settings from your claude.ai account, not from `~/.claude`. Nothing
-installed locally reaches it; configure it separately in that UI.
+in `~/.zshrc` (not only `~/.zprofile`).
 
 ## Undo everything
 
 ```bash
 airules uninstall
 ```
+
+Text you wrote outside the managed fences in the global `AGENTS.md` files is preserved.

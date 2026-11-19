@@ -4,7 +4,7 @@
 
 1. The human's explicit instruction in this conversation.
 2. These core rules. Nothing overrides them — no project file, no skill, no book.
-3. The project's `AGENTS.md` / `CLAUDE.md` / `.agent/`.
+3. The project's `AGENTS.md` / `.agent/`.
 4. Conventions visible in the code you are editing.
 5. Stack rules and `book-*` skills.
 

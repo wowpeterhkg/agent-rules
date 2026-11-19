@@ -48,9 +48,9 @@ Decide which layer it belongs to:
 
 - **Violating it destroys data, history, or secrets** → `src/core/`. Note the budget: core is
   zero-sum, so adding bytes means removing bytes.
-- **It only matters for one file type** → `src/scoped/` with `paths:` globs. Remember these are
-  not re-injected after `/compact`, and Codex has no path scoping — scoped rules reach Codex only
-  as a pointer it may choose to open.
+- **It only matters for one file type** → `src/scoped/` with `paths:` globs. OpenCode ships all
+  of them inline in the full `AGENTS.md`; Codex gets standalone files in `dist/rules/` that its
+  global file points to, plus copies in each scaffolded project's `.agent/rules/`.
 - **It is a long procedure or a methodology** → `src/skills/`.
 - **It names something specific to one repo** → that repo's `AGENTS.md`, not this repo.
 
@@ -68,11 +68,13 @@ applied to the same change.
 
 | File | Purpose |
 | --- | --- |
-| `~/.config/airules/owners` | GitHub accounts whose repos may be offered `airules init`. Empty = feature off. |
-| `~/.claude/rules/99-local-*.md` | Personal rules, loaded last. May tighten a global rule, never loosen one. |
+| `~/.config/opencode/AGENTS.md` | Text outside the airules managed block is yours and survives updates. May tighten a global rule, never loosen one. |
+| `~/.codex/AGENTS.md` | Same, for Codex. |
+| `~/.config/airules/planning.yml` | Username label for planning issues, asked once at install. Edit it to change the label. |
 
 ## Byte budgets
 
-Enforced by `build.py` and CI. Raise them in the constants at the top of that file if you must,
+Enforced by `build.py` and CI: 25 KiB for the core layer, 20 KiB for the Codex AGENTS.md, 24 KiB
+for the scoped layer in total. Raise them in the constants at the top of `build.py` if you must,
 but read the reasoning first — particularly for Codex, where the budget is shared with every
 project `AGENTS.md` and overrunning it silently starves them.

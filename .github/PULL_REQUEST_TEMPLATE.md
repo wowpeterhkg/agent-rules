@@ -13,7 +13,7 @@
 
 **Why not scoped:** why must this survive a `/compact`?
 
-**Byte budget:** core is currently ____ / 16384 B. After this change: ____ B.
+**Byte budget:** core is currently ____ / 25600 B. After this change: ____ B.
 
 **What are you deleting?** Core is a fixed budget. Name the bytes you are removing.
 
@@ -21,7 +21,7 @@
 
 - [ ] `python3 build.py` passes and `dist/` is committed
 - [ ] Adversarial prompt added or updated under `tests/prompts/`
-- [ ] Tried against both Claude and Codex
+- [ ] Tried against both OpenCode and Codex
 
 ## Blast radius
 

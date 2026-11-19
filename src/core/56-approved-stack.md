@@ -13,6 +13,9 @@ digest: |
     AI, ML, or Python-dependent work; never use Python for a general application backend.
   - Data: PostgreSQL is the source of truth; Prisma for TypeScript; ClickHouse via PeerDB CDC for
     analytics, never application writes; Redis for reconstructible cache and ephemeral state.
+  - Data + auth alternative: Supabase (PostgreSQL + Auth together) may be **proposed** for a new
+    project needing both. Not auto-approved: name it, what it replaces, cost and lock-in, then
+    **STOP and wait for a yes**. Existing users are exempt.
   - Infra: Docker multi-stage builds, Compose, nginx, Docker Hub.
 
   Record the backend choice and reason in `docs/decisions/`. Never mix backend frameworks in one
@@ -40,6 +43,7 @@ about *what is allowed*.
 | Backend — Python / AI | FastAPI and Pydantic v2 only for AI, ML, or Python-dependent workflows |
 | Data | PostgreSQL as source of truth; Prisma for TypeScript services; ClickHouse (+ PeerDB CDC) for analytics; Redis for cache |
 | Infra | Docker multi-stage builds, Docker Compose, nginx, Docker Hub |
+| Data + auth — proposal only | Supabase (PostgreSQL + Auth in one service) — see below |
 
 The frontend holds no secrets and never talks to a database. ClickHouse is never written by
 application code and never read for transactional queries. Anything in Redis must be
@@ -57,6 +61,17 @@ The set is broad on purpose, which makes the selection criteria the part that ma
 
 State which you are using and why at project start, and record it in `docs/decisions/`. Never mix
 two backend frameworks inside one service.
+
+## Supabase as a data + auth alternative
+
+Supabase — PostgreSQL plus authentication in one service — may be **proposed** for a new project
+that needs both relational storage and auth. It is not on the automatic-approval list: name it,
+say what it replaces (PostgreSQL plus a separate auth component), why the approved combination
+does not fit, and the cost — operational surface, vendor lock-in, migration path; then **STOP and
+wait for a yes**. Do not install it or build on it before that yes.
+
+Projects already using Supabase are exempt. Never migrate an existing project to it on your own
+initiative — say it once as a suggestion and leave it.
 
 ## Anything not listed
 

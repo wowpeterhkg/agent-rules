@@ -25,20 +25,19 @@ VENDOR = ROOT / "vendor"
 DIST = ROOT / "dist"
 VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip() if (ROOT / "VERSION").exists() else "0.0.0"
 
-# Byte budgets. Claude can afford the full core; Codex shares a 32 KiB total doc
-# budget with every project AGENTS.md, so its artifact is capped much harder.
-# Raised from 16 KiB when the design-defaults layer was added. Every byte here is
-# paid on every turn of every task, so treat an increase as a decision, not a fix:
-# prefer moving content into a skill.
-BUDGET_CLAUDE_CORE = 24576
+# Byte budgets. OpenCode loads the full AGENTS.md artifact with no hard cap; Codex
+# shares a 32 KiB total doc budget with every project AGENTS.md, so its variant is
+# capped much harder. Every byte here is paid on every turn of every task, so treat
+# an increase as a decision, not a fix: prefer moving content into a skill.
+BUDGET_CORE = 25600
 # Codex shares one budget across global + every project AGENTS.md. Default is 32 KiB;
-# install raises it to 64 KiB. 16 KiB here still leaves 16 KiB for project docs even
+# install raises it to 64 KiB. 20 KiB here still leaves 12 KiB for project docs even
 # if the config patch never ran.
-BUDGET_CODEX = 18432
-# Scoped rules load only on a path match, so this budget is far less precious than
-# core's — raised when the AI/vector schema rules were added.
+BUDGET_CODEX = 20480
+# Scoped rules ship inline in the full artifact and as standalone pointer targets,
+# so this budget is far less precious than core's.
 BUDGET_SCOPED_TOTAL = 24576
-SKILL_DESC_MAX = 1536  # description + when_to_use, combined, per Claude's truncation
+SKILL_DESC_MAX = 1536  # description + when_to_use, combined, conservative skill-list cap
 
 PREFIX_TOKEN = "@AIRULES_PREFIX@"  # substituted with the install path at install time
 
@@ -165,7 +164,8 @@ def slug(path: Path) -> str:
 # ----------------------------------------------------------------- renderers
 
 
-def render_claude_core(core) -> str:
+def render_core(core) -> str:
+    """Core layer on its own — used for the byte budget and the project scaffold."""
     parts = [GENERATED.format(v=VERSION), ""]
     for _path, _fm, body in core:
         parts.append(body.rstrip())
@@ -219,35 +219,49 @@ def render_codex(core, scoped, skills) -> str:
         ]
         for path, fm, _body in scoped:
             globs = " ".join((fm.get("paths") or [])[:2])
-            parts.append(f"- {globs} -> {PREFIX_TOKEN}/dist/claude/rules/airules-{slug(path)}.md")
+            parts.append(f"- {globs} -> {PREFIX_TOKEN}/dist/rules/airules-{slug(path)}.md")
         for d in skills:
             parts.append(f"- skill `{d.name}` -> {PREFIX_TOKEN}/dist/skills/{d.name}/SKILL.md")
         parts.append("")
     return "\n".join(parts).rstrip() + "\n"
 
 
-def render_agents_generic(core, scoped) -> str:
-    """agents.md-standard artifact for Cursor/Copilot/Zed — no byte pressure."""
-    parts = [GENERATED.format(v=VERSION), "", "# Global engineering rules", ""]
+def render_agents_full(core, scoped) -> str:
+    """The single AGENTS.md artifact: full core plus all conventions inline.
+
+    OpenCode and other AGENTS.md-based agents get everything in one file. The
+    standalone files in dist/rules/ exist for Codex's soft pointers and for the
+    per-project copies made by `airules init`.
+    """
+    parts = [
+        GENERATED.format(v=VERSION),
+        "",
+        "# Global engineering rules",
+        "",
+        "These apply to every project on this machine. Project AGENTS.md files add to them and",
+        "win on conflict, except where a rule below says it cannot be overridden.",
+        "",
+    ]
     for _path, _fm, body in core:
         parts.append(body.rstrip())
         parts.append("")
-    for path, fm, body in scoped:
-        globs = ", ".join(fm.get("paths") or [])
-        parts.append(f"<!-- applies to: {globs} -->")
-        parts.append(body.rstrip())
-        parts.append("")
+    if scoped:
+        parts += [
+            "---",
+            "",
+            "## Conventions for specific files",
+            "",
+            "Every convention is included here so no agent has to fetch another file. The",
+            "`applies to:` line above each one names the files it governs; when a project has",
+            "been scaffolded, the same text also lives in its `.agent/rules/`.",
+            "",
+        ]
+        for _path, fm, body in scoped:
+            globs = ", ".join(fm.get("paths") or [])
+            parts.append(f"<!-- applies to: {globs} -->")
+            parts.append(body.rstrip())
+            parts.append("")
     return "\n".join(parts).rstrip() + "\n"
-
-
-def render_claude_stub() -> str:
-    return (
-        f"{GENERATED.format(v=VERSION)}\n\n"
-        "# Global rules\n\n"
-        "House engineering rules load automatically from `~/.claude/rules/airules-*.md`.\n"
-        "Book-derived design methodologies are installed as skills named `book-*`; house\n"
-        "procedures as `idn-*`. Load at most one `book-*` skill per task.\n"
-    )
 
 
 # ------------------------------------------------------------- book skills
@@ -413,11 +427,10 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def budget(label: str, path: Path, cap: int, errors: list[str]) -> dict:
-    n = path.stat().st_size
-    if n > cap:
-        errors.append(f"{label}: {n} B exceeds the {cap} B budget (over by {n - cap} B)")
-    return {"file": str(path.relative_to(ROOT)), "bytes": n, "budget": cap}
+def budget(label: str, file: str, size: int, cap: int, errors: list[str]) -> dict:
+    if size > cap:
+        errors.append(f"{label}: {size} B exceeds the {cap} B budget (over by {size - cap} B)")
+    return {"file": file, "bytes": size, "budget": cap}
 
 
 def main() -> int:
@@ -471,17 +484,17 @@ def main() -> int:
 
     if DIST.exists():
         shutil.rmtree(DIST)
-    (DIST / "claude" / "rules").mkdir(parents=True)
+    (DIST / "rules").mkdir(parents=True)
     (DIST / "codex").mkdir(parents=True)
     (DIST / "agents").mkdir(parents=True)
     (DIST / "skills").mkdir(parents=True)
 
-    core_out = DIST / "claude" / "rules" / "airules-00-core.md"
-    core_out.write_text(render_claude_core(core), encoding="utf-8")
+    core_doc = render_core(core)
+    core_bytes = len(core_doc.encode("utf-8"))
 
     scoped_bytes = 0
     for path, fm, body in scoped:
-        out = DIST / "claude" / "rules" / f"airules-{slug(path)}.md"
+        out = DIST / "rules" / f"airules-{slug(path)}.md"
         try:
             out.write_text(render_scoped_rule(fm, body), encoding="utf-8")
         except BuildError as exc:
@@ -489,20 +502,19 @@ def main() -> int:
             continue
         scoped_bytes += out.stat().st_size
 
-    (DIST / "claude" / "CLAUDE.md").write_text(render_claude_stub(), encoding="utf-8")
-
     house_skill_dirs = sorted(d for d in (SRC / "skills").glob("*") if d.is_dir())
     for d in house_skill_dirs:
         shutil.copytree(d, DIST / "skills" / d.name)
     book_dirs = build_book_skills(errors)
 
+    full_out = DIST / "agents" / "AGENTS.md"
+    full_out.write_text(render_agents_full(core, scoped), encoding="utf-8")
     codex_out = DIST / "codex" / "AGENTS.md"
     codex_out.write_text(render_codex(core, scoped, house_skill_dirs + book_dirs), encoding="utf-8")
-    (DIST / "agents" / "AGENTS.md").write_text(render_agents_generic(core, scoped), encoding="utf-8")
 
     budgets = [
-        budget("dist/claude/rules/airules-00-core.md", core_out, BUDGET_CLAUDE_CORE, errors),
-        budget("dist/codex/AGENTS.md", codex_out, BUDGET_CODEX, errors),
+        budget("core layer (dist/agents/AGENTS.md)", "core layer", core_bytes, BUDGET_CORE, errors),
+        budget("dist/codex/AGENTS.md", "dist/codex/AGENTS.md", codex_out.stat().st_size, BUDGET_CODEX, errors),
     ]
     if scoped_bytes > BUDGET_SCOPED_TOTAL:
         errors.append(f"scoped layer: {scoped_bytes} B exceeds the {BUDGET_SCOPED_TOTAL} B budget")
@@ -539,7 +551,7 @@ def main() -> int:
     for b in budgets:
         print(f"  {b['file']}: {b['bytes']} / {b['budget']} B")
     print(f"  scoped layer: {scoped_bytes} / {BUDGET_SCOPED_TOTAL} B")
-    print(f"  skills: {len(artifacts and [d for d in (DIST / 'skills').glob('*') if d.is_dir()])}")
+    print(f"  skills: {len([d for d in (DIST / 'skills').glob('*') if d.is_dir()])}")
     return 0
 
 
